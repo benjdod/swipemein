@@ -1,13 +1,18 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const path = require('path');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const webpack = require('webpack');
 
 const mode = process.env.NODE_ENV || 'development';
 const prod = mode === 'production';
 
 module.exports = {
 	entry: {
-		'build/bundle': ['./src/main.js']
+		'build/bundle': !prod ? [
+			'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
+			'./src/main.js'
+		] : ['./src/main.js']
 	},
 	resolve: {
 		alias: {
@@ -68,11 +73,21 @@ module.exports = {
 			},
 		]
 	},
+	optimization: {
+		minimizer: [
+			new CssMinimizerPlugin(),
+		]
+	},
 	mode,
 	plugins: [
+		new webpack.HotModuleReplacementPlugin(),
+		new webpack.NoEmitOnErrorsPlugin(),
 		new MiniCssExtractPlugin({
 			filename: '[name].css'
-		})
+		}),
+		new HtmlWebpackPlugin({
+			template: './public/template.html'
+		}),
 	],
 	devtool: prod ? false : 'source-map',
 	devServer: {

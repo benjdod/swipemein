@@ -1,6 +1,7 @@
 const express = require('express');
 const webpack = require('webpack');
 const wdm = require('webpack-dev-middleware');
+const whm = require('webpack-hot-middleware');
 const path = require('path');
 
 const app = express();
@@ -10,6 +11,14 @@ const compiler = webpack(config);
 app.use(
     wdm(compiler, {
         publicPath: config.output.publicPath
+    })
+);
+
+app.use(
+    whm(compiler, {
+        log: console.log,
+        path: '/__webpack_hmr',
+        heartbeat: 10*1000,
     })
 );
 

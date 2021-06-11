@@ -87,7 +87,7 @@
     }
 
     #description {
-        background-color: #8ad;
+        background-color: rgb(129, 143, 163);
     }
 
     #splashscreen .logo-zone {
