@@ -4,6 +4,9 @@
 -->
 
 <script>
+
+import { link } from "svelte-routing"
+
 let name="";
 </script>
 
@@ -11,6 +14,8 @@ let name="";
     <h2>What's your name?</h2>
     <input type="text" bind:value={name}>
     <button>Submit</button>
+    <br>
+    <a use:link href="/">&LeftArrow; Back home</a>
 </main>
 
 <style>

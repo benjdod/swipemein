@@ -5,9 +5,10 @@
 
 <script>
 
+    import { onMount } from 'svelte'
     import { getDocCookies } from '../../util/doc-cookies'
 
-    import { navigate } from 'svelte-routing'
+    import { navigate, link } from 'svelte-routing'
 
     // important constants
     const message_maxlength = 120;
@@ -18,24 +19,31 @@
         message: ''
     }
 
+    onMount(() => {
+        // if there is a previous request stored on the user's machine,
+        // just navigate to the display page
+        let cookies = getDocCookies();
+        if (cookies['smi-request']) {
+            //let oldrequest =  JSON.parse(decodeURIComponent (cookies['smi-request']));
+            //fields = {...oldrequest};
+            navigate('/active-request', {replace: true});
+        }
+    })
 
     // populate the fields objects which is bound to the form
     let now = new Date(Date.now());
+    let hours = now.getHours();
     let minutes = Math.round(Math.ceil(now.getMinutes() / time_roundfactor) * time_roundfactor);
+
+
+    let init_time = `${hours.toString().padStart(2,'0')}:${minutes < 10 ? `0${minutes}` : minutes}`;
+    if (hours == 23 && minutes > 59) init_time = '00:00';
+
     let fields = {
         name: '',
         classyear: '',
-        time: `${now.getHours()}:${minutes < 10 ? `0${minutes}` : minutes}`,
+        time: init_time,
         message: ''
-    }
-
-    // if there is a previous request stored on the user's machine,
-    // just navigate to the display page
-    let cookies = getDocCookies();
-    if (cookies['smi-request']) {
-        //let oldrequest =  JSON.parse(decodeURIComponent (cookies['smi-request']));
-        //fields = {...oldrequest};
-        navigate('/active-request');
     }
 
     let textboxLength = 0;
@@ -67,14 +75,19 @@
         if (formError.message != '') {formError.hasError = true; return false;} else formError.hasError = false;
 
 
-        fetch('/api/post-request', {
+        fetch('/api/data/request', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(fields)
-        }).then(r => console.log(r.status)).catch(error => {
+        }).then(r => {
+            console.log(r.status);
+            navigate('/active-request');
+        }).catch(error => {
             console.error('submit request err: ', error);
+            formError.hasError = true;
+            formError.message = 'Internal server error. Please refresh and try again.'
         })
         return false;
     }
@@ -103,6 +116,8 @@
             <p>{formError.message}</p>
         {/if}
         <button on:click={submitForm}>Submit!</button>
+        <br>
+        <a use:link href="/">&LeftArrow; Back home</a>
     </div>
 </main>
 

@@ -2,8 +2,8 @@
     import Roundedbutton from "../components/ui/roundedbutton.svelte";
     import CaretDown from "../images/caret-down.svg";
     let swiperequest = {
-        backgroundColor: '#85CFF9',
-        color: '#2f759c'
+        backgroundColor: '#13294B', //'#7BAFD4',
+        color: '#ffffff' //'#2f759c'
     }
 
     let to_description = false;
@@ -15,7 +15,7 @@
 
         <div id="splashscreen">
             <div class="logo-zone">
-                <h1 class="logo">SwipeMeIn</h1>
+                <h1 class="logo">SwipeMeIn<span style="color: #7BAFD4"><br>@UNC</span></h1>
 
             </div>
 
@@ -23,7 +23,7 @@
                 <div class="action-buttons">
                     <Roundedbutton backgroundColor={swiperequest.backgroundColor} color={swiperequest.color} nav_to="/new-request">I need a swipe</Roundedbutton>
                     <br>
-                    <Roundedbutton nav_to="/new-provider">I have a swipe</Roundedbutton>
+                    <Roundedbutton backgroundColor={swiperequest.color} color={swiperequest.backgroundColor} nav_to="/new-provider">I have a swipe</Roundedbutton>
                 </div>
 		
                 <div class="desc-prompt">
@@ -46,7 +46,13 @@
         </div>
 
         <div id="description">
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla aliquet aliquet odio id feugiat. Cras at sapien velit. Maecenas ullamcorper felis id dolor ultrices, a egestas turpis mollis. Nulla sed nisi id nunc semper ultricies. Pellentesque et eros congue, luctus odio ut, pulvinar mauris. Fusce mattis auctor metus ac elementum. Vivamus commodo vitae felis eget dapibus. Nunc eget purus consequat, congue dui sit amet, gravida augue. Proin tempor bibendum rutrum. Praesent sed mauris at lorem auctor fermentum. Nunc velit sem, congue vel sagittis ut, lacinia et felis. Aliquam rutrum nisi a porta sollicitudin. Ut urna nisl, cursus eget mauris eu, viverra vulputate tellus. Etiam rutrum venenatis mi, sit amet dictum nulla malesuada in.</p>
+            <p>
+                We all get hungry sometimes.
+                <br><br>
+                Whether you're running low on swipes for the semester or you want to swing by and reminisce your earlier college days, we've got you covered. You don't have to sit outside the dining hall with a sign or post on Facebook in hopes someone will come to your aid, you can simply do it from the comfort of wherever you are, no account necessary!
+                <br><br>
+                Needless to say, this app depends on the charity of students who have swipes, so if you've got an extra swipe, please share the love!
+            </p>
         </div>
 		
     </div>
@@ -83,7 +89,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        background-color: #eef;
+        background-color: #fff;
     }
 
     #description {

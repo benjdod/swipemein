@@ -3,7 +3,10 @@ const path = require('path');
 
 const app = express();
 
-app.use(express.static('./public'))
+const apiRoutes = require('./common.js');
+
+app.use(express.static('./public'));        // frontend
+app.use('/api', apiRoutes);                 // backend
 
 app.get('*', (req,res) => {
     res.sendFile(path.resolve(__dirname, '../public/index.html'));

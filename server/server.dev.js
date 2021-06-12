@@ -8,7 +8,7 @@ const app = express();
 const config = require('../webpack.config.js');
 const compiler = webpack(config);
 
-const apiRoutes = require('./endpoints/api.js');
+const apiRoutes = require('./common.js');
 
 app.use(
     wdm(compiler, {
@@ -24,9 +24,8 @@ app.use(
     })
 );
 
-app.use(express.static('./public'));
-
-app.use('/api', apiRoutes);
+app.use(express.static('./public'));    // frontend
+app.use('/api', apiRoutes);             // backend
 
 app.get('*', (req,res) => {
     res.sendFile(path.resolve(__dirname, '../public/index.html'));

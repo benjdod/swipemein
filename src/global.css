@@ -48,6 +48,8 @@ input:disabled {
 
 input[type=text], textarea {
 	padding: 10px;
+	border: none;
+	background-color: #fffaf2;
 }
 
 button {
