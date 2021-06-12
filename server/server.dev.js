@@ -5,8 +5,10 @@ const whm = require('webpack-hot-middleware');
 const path = require('path');
 
 const app = express();
-const config = require('./webpack.config.js');
+const config = require('../webpack.config.js');
 const compiler = webpack(config);
+
+const apiRoutes = require('./endpoints/api.js');
 
 app.use(
     wdm(compiler, {
@@ -22,10 +24,12 @@ app.use(
     })
 );
 
-app.use(express.static('./public'))
+app.use(express.static('./public'));
+
+app.use('/api', apiRoutes);
 
 app.get('*', (req,res) => {
-    res.sendFile(path.resolve(__dirname, './public/index.html'));
+    res.sendFile(path.resolve(__dirname, '../public/index.html'));
 })
 
 app.listen(8080, () => {
