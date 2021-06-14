@@ -1,4 +1,7 @@
 <script>
+
+    import { navigate } from "svelte-routing"
+
     import Roundedbutton from "../components/ui/roundedbutton.svelte";
     import CaretDown from "../images/caret-down.svg";
     let swiperequest = {
@@ -7,6 +10,10 @@
     }
 
     let to_description = false;
+
+    let is_online = true;
+
+    fetch('/ping').then(r => is_online = true).catch(e => {is_online = false;});
 
 </script>
 
@@ -20,17 +27,19 @@
             </div>
 
             <div class="control-zone">
+                {#if is_online}
                 <div class="action-buttons">
-                    <Roundedbutton backgroundColor={swiperequest.backgroundColor} color={swiperequest.color} nav_to="/new-request">I need a swipe</Roundedbutton>
-                    <br>
-                    <Roundedbutton backgroundColor={swiperequest.color} color={swiperequest.backgroundColor} nav_to="/new-provider">I have a swipe</Roundedbutton>
+                    <button style="background-color: {swiperequest.backgroundColor}; color: {swiperequest.color};" on:click={() => navigate('/new-request')}>I need a swipe</button>
+                    <button style="background-color: {swiperequest.color}; color: {swiperequest.backgroundColor}; border: 2px solid {swiperequest.backgroundColor};" on:click={() => navigate('/new-provider')}>I have a swipe</button>
                 </div>
+                {:else}
+                <h2>This app requires an internet connection to work!</h2>
+                {/if}
 		
                 <div class="desc-prompt">
                     <a href="{to_description ? '#description' : '#'}"
                         on:click="{() => {
                             to_description = !to_description;
-                            console.log(to_description);
                         }}"
                         style="text-decoration: none;"
                     >
@@ -54,6 +63,10 @@
                 Needless to say, this app depends on the charity of students who have swipes, so if you've got an extra swipe, please share the love!
             </p>
         </div>
+        <footer>
+            <p>This is not a complete website.</p>
+            <p>&copy; 2021</p>
+        </footer>
 		
     </div>
 </main>
@@ -111,6 +124,15 @@
         padding: 0 0 10vh;
     }
 
+    .action-buttons button {
+        border-radius: 5px;
+        border: none;
+        margin: 15px;
+        font-size: 24px;
+        font-weight: 600;
+        padding: 10px 15px;
+    }
+
     .desc-prompt {
         /*
         position: absolute;
@@ -141,5 +163,8 @@
         }
     }
 
+    footer * {
+        font-size: 16px;
+    }
 	
 </style>

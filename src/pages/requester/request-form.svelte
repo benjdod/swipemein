@@ -5,9 +5,10 @@
 
 <script>
 
-    import { onMount } from 'svelte'
-    import { getDocCookies } from '../../util/doc-cookies'
+    import ModalPopup from "../../components/modalpopup.svelte"
 
+    import { onMount } from 'svelte'
+    import { navigateOnCookie, actionOnCookie, getDocCookies } from '../../util/doc-cookies'
     import { navigate, link } from 'svelte-routing'
 
     // important constants
@@ -19,15 +20,15 @@
         message: ''
     }
 
+    let fromProvider = false;
+
     onMount(() => {
         // if there is a previous request stored on the user's machine,
         // just navigate to the display page
-        let cookies = getDocCookies();
-        if (cookies['smi-request']) {
-            //let oldrequest =  JSON.parse(decodeURIComponent (cookies['smi-request']));
-            //fields = {...oldrequest};
-            navigate('/active-request', {replace: true});
-        }
+        navigateOnCookie('smi-request', '/active-request');
+        actionOnCookie('smi-provider', () => {
+            fromProvider = true;
+        })
     })
 
     // populate the fields objects which is bound to the form
@@ -61,7 +62,7 @@
 
         if (fields.name == '') {
             formError.message = 'Please enter a valid first name'
-        } else if (fields.classyear == '' || ! fields.classyear.match(/20[2-9][0-9]/)) {
+        } else if (fields.classyear == '' || ! fields.classyear.match(/^20[2-9][0-9]$/)) {
             formError.message = 'Please enter a valid graduation year'
         } else if (
             fields.time == '' ||
@@ -74,6 +75,9 @@
 
         if (formError.message != '') {formError.hasError = true; return false;} else formError.hasError = false;
 
+        let newTime = parseInt(fields.time.substring(0,2)) * 60 + parseInt(fields.time.substring(3));
+
+        fields.time = newTime;
 
         fetch('/api/data/request', {
             method: 'POST',
@@ -92,9 +96,39 @@
         return false;
     }
 
+    const deleteProvider = () => {
+        const cookies = getDocCookies();
+
+
+        let prov_fields = JSON.parse(decodeURIComponent (cookies['smi-provider']));
+
+        fetch('/api/data/provider', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({uid: prov_fields.uid})
+        }).then(r => {
+            fromProvider = false;
+        }).catch(e => {
+            console.error(e);
+            alert('could not delete provider listing');
+        })
+    }
+
 </script>
 
 <main>
+    {#if fromProvider}
+        <ModalPopup 
+            denyaction={() => navigate('/', {replace: true})}
+            confirmaction={deleteProvider}
+            deny="No, take me home"
+            confirm="Yes, I need a swipe"
+        >
+            It looks like you have indicated that you can provide a swipe. Do you want to cancel and request instead?
+        </ModalPopup>
+    {/if}
     <div class="fullwidth">
 
         <form id="request-form">
@@ -102,7 +136,7 @@
             <input type="text" placeholder="" id="field-name" bind:value={fields.name}>
             <br>
             <label for="field-classyear" >Graduation year</label>
-            <input type="text" placeholder="e.g. 2022" id="field-classyear" bind:value={fields.classyear}>
+            <input type="text" placeholder="e.g. 2022" id="field-classyear" inputmode="decimal" bind:value={fields.classyear}>
             <label for="field-time">Time</label>
             <input type="time" id="field-time" on:change={showEvent} bind:value={fields.time}>
             <br>
@@ -123,7 +157,7 @@
 
 <style>
 .fullwidth {
-    padding: 10px;
+    padding: 5% 10%;
     width: 100%;
 }
 

@@ -8,6 +8,10 @@ const apiRoutes = require('./common.js');
 app.use(express.static('./public'));        // frontend
 app.use('/api', apiRoutes);                 // backend
 
+app.get('/ping', (req,res) => {
+    res.sendStatus(200);
+})
+
 app.get('*', (req,res) => {
     res.sendFile(path.resolve(__dirname, '../public/index.html'));
 })

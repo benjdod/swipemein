@@ -6,11 +6,18 @@
 <script>
 
     import { getDocCookies } from '../../util/doc-cookies'
-    import { dayMinutesToString } from '../../util/listtime'
+    import { dayMinutesToString, getDayMinutes, getDayMilliseconds } from '../../util/listtime'
     import { onMount } from 'svelte'
     import { navigate } from 'svelte-routing';
+    import ConfirmDialog from "../../components/confirmpopdown.svelte"
 
     let hasError = false;
+    let isActive = false;
+
+    let dialog = {
+        delete: false,
+        renew: false
+    }
 
     let fields = {};
 
@@ -20,6 +27,16 @@
         fields = {...r};
     } else {
         hasError = true;
+    }
+
+    const msec = getDayMilliseconds();
+    const time_ms = fields.time * 60 * 1000;
+    if (msec > time_ms) {
+        isActive = true;
+    } else {
+        setTimeout(() => {
+            isActive = true;
+        }, time_ms - msec);
     }
 
     onMount(() => {
@@ -49,20 +66,37 @@
 
 <main>
     <div class="frame">
+        
         <p class="active-at">Request active at:</p>
-        <h1 class="time">{fields.time}</h1>
+        <h1 class="time">{isActive ? 'now' : dayMinutesToString(fields.time, {militaryTime: true})}</h1>
+
+        {#if isActive}
+        <div style="width: 15px; margin: 0 auto;" class="blink">
+            <div style="display: block;">
+                <svg viewBox="0 0 100 100">
+                    <g color="#7d8">
+                        <circle cx="50" cy="50" r="50" fill="currentcolor"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        {/if}
+
         <p class="message">"{fields.message}"</p>
 
         <div class="fullwidth">
-            <button class="halfwidth delete" on:click={deleteRequest}>Delete</button>
+            <button class="halfwidth delete" on:click={() => {dialog.delete = true;}}>Delete</button>
             <button class="halfwidth renew">Renew</button>
         </div>
+        {#if dialog.delete}
+            <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
+        {/if}
     </div>
 </main>
 
 <style>
 
-/*
+
 .blink {
     animation: blinker 2s step-start infinite;
 }
@@ -72,7 +106,7 @@
     opacity: 0;
     }
 }
-*/
+
 
 .frame {
     text-align: center;
