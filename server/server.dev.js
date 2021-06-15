@@ -10,7 +10,9 @@ const config = require('../webpack.config.js');
 const compiler = webpack(config);
 
 const apiRoutes = require('./common.js');
+const bindWebSocket = require('./websocket');
 
+/*
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on('connection', socket => {
     socket.on('message', message => {
@@ -18,6 +20,7 @@ wsServer.on('connection', socket => {
         socket.send('you just said: ' + message);
     });
 });
+*/
 
 app.use(
     wdm(compiler, {
@@ -44,8 +47,12 @@ const server = app.listen(8080, () => {
     console.log('express app listening on 8080');
 })
 
+/*
 server.on('upgrade', (request, socket, head) => {
     wsServer.handleUpgrade(request, socket, head, socket => {
         wsServer.emit('connection', socket, request);
     });
 });
+*/
+
+bindWebSocket(server);

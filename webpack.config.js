@@ -57,17 +57,20 @@ module.exports = {
 				}
 			},
 			{
+				test: /\.(png|svg|jpg|jpeg|gif)$/i,
+				use: [
+					'file-loader'
+				]
+			},
+			/*
+			{
 				test: /\.svg$/i,
 				use: [
 					{
 						loader: 'svg-url-loader',
 					}
 				]
-			},
-			{
-				test: /\.(png|svg|jpg|jpeg|gif)$/i,
-				type: 'asset/resource',
-			},
+			},*/
 		]
 	},
 	optimization: {

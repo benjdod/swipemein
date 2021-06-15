@@ -29,6 +29,8 @@
         hasError = true;
     }
 
+    // if the time display is still displaying a time in the future,
+    // set a timeout that changes it when the request becomes active
     const msec = getDayMilliseconds();
     const time_ms = fields.time * 60 * 1000;
     if (msec > time_ms) {

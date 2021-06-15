@@ -2,7 +2,7 @@
 
     import { navigate } from "svelte-routing"
 
-    import Roundedbutton from "../components/ui/roundedbutton.svelte";
+    import InlineSVG from "svelte-inline-svg"
     import CaretDown from "../images/caret-down.svg";
     let swiperequest = {
         backgroundColor: '#13294B', //'#7BAFD4',
@@ -44,11 +44,7 @@
                         style="text-decoration: none;"
                     >
                         <p style="text-decoration: none;">What is it?</p>
-                        {#if to_description}
-                            <img src={CaretDown} class="caret caret-up" alt="caret pointing up">
-                        {:else}
-                            <img src={CaretDown} class="caret caret-down" alt="caret pointing down">
-                        {/if}
+                        <img src={CaretDown} class="caret {to_description ? 'caret-up' : 'caret-down'}" alt="go up"/>
                     </a>
                 </div>
             </div>	
@@ -133,13 +129,18 @@
         padding: 10px 15px;
     }
 
+    .desc-prompt * {
+        text-decoration: none;
+        color:rgb(129, 143, 163);
+    }
+
     .desc-prompt {
         /*
         position: absolute;
         bottom: 50px;
         */
         color: #000000;
-        opacity: 0.5;
+        opacity: 1;
     }
 
     .desc-prompt .caret {
