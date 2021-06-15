@@ -9,9 +9,14 @@ const conSessions = {
 
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on('connection', socket => {
+
     socket.on('message', message => {
         console.log(message);
-        socket.send('you just said: ' + message);
+
+        conSessions.a.forEach(s => {
+            if (s != socket)
+                s.send('someone said: ' + message);
+        })
     });
 });
 
@@ -22,6 +27,7 @@ wsServer.on('connection', socket => {
 const bindServer = (expressServer) => {
     expressServer.on('upgrade', (request, socket, head) => {
         wsServer.handleUpgrade(request, socket, head, socket => {
+            conSessions.a.push(socket);
             wsServer.emit('connection', socket, request);
         });
     });

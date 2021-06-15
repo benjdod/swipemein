@@ -12,7 +12,11 @@
     const languageFilter = new BadWords();
 
     try {
-        const ws = new WebSocket('ws://localhost:8080');
+        const chat_session = Math.floor(Date.now() / (10 * 1000));
+        const ws = new WebSocket(`ws://localhost:8080/ws/chat/${chat_session}`);
+
+        console.log('your chat session: ', chat_session);
+
         ws.onmessage = ({data}) => {
             chat_messages = [...chat_messages, {p: 1, text: data.toString(), time: Date.now()}];
         }
