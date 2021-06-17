@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const redis = require('redis');
 const crypto = require('crypto');
 
-const { acceptRequest } = require('./chatserver');
+const { notifyOfAcceptedRequest } = require('./chatserver');
 
 const client = redis.createClient(6379);
 const router = express.Router();
@@ -16,7 +16,8 @@ router.post('/request', (req,res) => {
     
     console.log(req.body);
 
-    // WARNING: this should check to make sure the uid doesn't collide with any other one in the database
+    // note: uuid generation like this is very safe
+    // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
     const request_uid = crypto.randomBytes(16).toString('hex');
 
     const request_data = {...req.body, uid: request_uid}
@@ -31,16 +32,16 @@ router.post('/request', (req,res) => {
 });
 
 router.delete('/request', (req,res) => {
-
-    // WARNING: this is sketchy 
+    // WARNING: this might be sketchy 
     client.lrem('requests', 0, JSON.stringify(req.body));
     res.clearCookie('smi-request').sendStatus(200);
 })
 
+
+/*** POST and DELETE providers ***/
+
 router.post('/provider', (req,res) => {
-
     let provider_uid = crypto.randomBytes(16).toString('hex');
-
     client.set(`prv:${provider_uid}`, JSON.stringify(req.body));
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
@@ -53,26 +54,26 @@ router.delete('/provider', (req,res) => {
     res.clearCookie('smi-provider').sendStatus(200);
 })
 
+/*** generate list of recent requests ***/
+
 router.get('/requests', (req,res) => {
+    // TODO: add params (skip, limit, sort) for infinite scrolling, filtering, etc
     client.lrange('requests', 0, 10, (err, requests) => {
         if (err) {
             console.error(err);
             res.sendStatus(500);
             return;
         }
-        
         res.set('Content-Type', 'application/json').send(JSON.stringify(requests.map(r => JSON.parse(r))));
     });
 })
 
+/*** tell requester to proceed to chat, OK provider to proceed as well ***/
+
 router.post('/accept-request', (req,res) => {
     console.log('accept request: ', req.body.uid);
-    acceptRequest(req.body.uid);
+    notifyOfAcceptedRequest(req.body.uid);
     res.sendStatus(200);
 })
-
-router.get('/', (req,res) => {
-    res.send('api routes');
-});
 
 module.exports = router;

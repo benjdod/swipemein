@@ -62,7 +62,7 @@ exports.bindChatServer = (expressServer) => {
     });
 }
 
-exports.acceptRequest = (uid) => {
+exports.notifyOfAcceptedRequest = (uid) => {
     const targetSocket = requestSockets[uid];
     if (! targetSocket) {console.error('no target socket!'); return;}
     targetSocket.send('accept');
