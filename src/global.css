@@ -1,4 +1,8 @@
-/*! SwipeMeIn global styles */
+/* SwipeMeIn global styles */
+
+html {
+	scroll-behavior: smooth;
+}
 
 html, body {
 	position: relative;
@@ -48,8 +52,8 @@ input:disabled {
 
 input[type=text], textarea {
 	padding: 10px;
-	border: none;
-	background-color: #fffaf2;
+	border: 2px solid #ddd;
+	background-color: #eee;
 }
 
 button {

@@ -47,7 +47,7 @@
         <ChatView messages={chat_messages}/>
         <div class="composer">
             <input type="text" bind:value={client_message} placeholder="send a message..." on:keyup={e => {if (e.key === 'Enter') sendMessage()}}>
-            <button on:click={sendMessage}>send</button>
+            <button on:click={sendMessage}>Send</button>
         </div>
         
     </div>
@@ -59,7 +59,7 @@
     position: fixed;
     bottom: 0;
     width: 100%;
-    background-color: black;
+    background-color: rgb(223, 223, 223);
 }
 
 .composer input {
@@ -69,6 +69,10 @@
 .composer button {
     width: 19%;
     border: none;
+    border-radius: 5px;;
+    background-color: #13294B;
+    color: white;
+    font-weight: 700;
 
 }
 

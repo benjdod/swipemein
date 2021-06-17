@@ -35,9 +35,10 @@
     let now = new Date(Date.now());
     let hours = now.getHours();
     let minutes = Math.round(Math.ceil(now.getMinutes() / time_roundfactor) * time_roundfactor);
+    if (minutes >= 60) minutes = 0;
 
 
-    let init_time = `${hours.toString().padStart(2,'0')}:${minutes < 10 ? `0${minutes}` : minutes}`;
+    let init_time = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}`;
     if (hours == 23 && minutes > 59) init_time = '00:00';
 
     let fields = {

@@ -10,17 +10,7 @@ const config = require('../webpack.config.js');
 const compiler = webpack(config);
 
 const apiRoutes = require('./common.js');
-const bindWebSocket = require('./websocket');
-
-/*
-const wsServer = new ws.Server({ noServer: true });
-wsServer.on('connection', socket => {
-    socket.on('message', message => {
-        console.log(message);
-        socket.send('you just said: ' + message);
-    });
-});
-*/
+const {bindChatServer} = require('./endpoints/chatserver.js');
 
 app.use(
     wdm(compiler, {
@@ -55,4 +45,4 @@ server.on('upgrade', (request, socket, head) => {
 });
 */
 
-bindWebSocket(server);
+bindChatServer(server);

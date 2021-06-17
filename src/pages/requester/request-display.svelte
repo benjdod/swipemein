@@ -11,22 +11,27 @@
     import { navigate } from 'svelte-routing';
     import ConfirmDialog from "../../components/confirmpopdown.svelte"
 
-    let hasError = false;
     let isActive = false;
+
+    let err = {
+        noFields: false,
+        noConnection: false,
+        message: ''
+    }
 
     let dialog = {
         delete: false,
         renew: false
     }
 
+    // parse request fields from the previously stored cookie
     let fields = {};
-
     let cookies = getDocCookies();
     if (cookies['smi-request']) {
         let r =  JSON.parse(decodeURIComponent (cookies['smi-request']));
         fields = {...r};
     } else {
-        hasError = true;
+        err.noFields = true;
     }
 
     // if the time display is still displaying a time in the future,
@@ -42,7 +47,24 @@
     }
 
     onMount(() => {
-        if (hasError) navigate('/new-request');
+
+        if (err.noFields) navigate('/new-request');
+
+        const setNoConnection = () => {err.noConnection = true; err.message = 'You\'re not connected! Refresh to reconnect'}
+
+        try {
+            const ws = new WebSocket(`ws://localhost:8080/ws/request/${fields.uid}`);
+            ws.onmessage = ({data}) => {
+                if (data.match(/^accept/)) {
+                    alert('receiving a swipe, would you like to accept?');
+                }
+            }
+            ws.onerror = setNoConnection;
+            ws.onclose = setNoConnection;
+        } catch (e) {
+            console.error(e);
+            setNoConnection();
+        }
     })
 
     /*
@@ -51,18 +73,22 @@
     fields.time = dayMinutesToString(hours * 60 + minutes);*/
 
     const deleteRequest = () => {
+
+        console.log('deleting request: ', fields);
+
         fetch('/api/data/request', {
             headers: {
                 'Content-Type': 'application/json'
             },
             method: 'DELETE',
-            body: JSON.stringify({uid: fields.uid})
+            body: JSON.stringify(fields)
         }).then(res => {
             navigate('/');
         }).catch(err => {
             console.error(err);
         })
     }
+
 
 </script>
 
@@ -72,7 +98,7 @@
         <p class="active-at">Request active at:</p>
         <h1 class="time">{isActive ? 'now' : dayMinutesToString(fields.time, {militaryTime: true})}</h1>
 
-        {#if isActive}
+        {#if isActive && ! err.noConnection}
         <div style="width: 15px; margin: 0 auto;" class="blink">
             <div style="display: block;">
                 <svg viewBox="0 0 100 100">
@@ -87,11 +113,18 @@
         <p class="message">"{fields.message}"</p>
 
         <div class="fullwidth">
-            <button class="halfwidth delete" on:click={() => {dialog.delete = true;}}>Delete</button>
-            <button class="halfwidth renew">Renew</button>
+            <button class="delete fullwidth" on:click={() => {dialog.delete = true;}}>Delete</button>
+            <!--
+                <button class="halfwidth renew">Renew</button>
+            -->
         </div>
         {#if dialog.delete}
             <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
+        {/if}
+        {#if err.noConnection}
+        <div class="error">
+            <p>Error: {err.message}</p>
+        </div>
         {/if}
     </div>
 </main>
@@ -120,7 +153,7 @@
     width: 100%;
 }
 
-button.halfwidth {
+button {
     width: 49%;
     border: none;
     font-weight: 400;
@@ -133,10 +166,6 @@ button.delete {
     color: white;
 }
 
-button.renew {
-    background-color: rgb(236, 233, 233);
-    color:rgb(161, 161, 161);
-}
 
 .active-at {
     font-size: 16px;

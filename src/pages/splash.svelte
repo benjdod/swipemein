@@ -30,6 +30,7 @@
                 {#if is_online}
                 <div class="action-buttons">
                     <button style="background-color: {swiperequest.backgroundColor}; color: {swiperequest.color};" on:click={() => navigate('/new-request')}>I need a swipe</button>
+                    <br>
                     <button style="background-color: {swiperequest.color}; color: {swiperequest.backgroundColor}; border: 2px solid {swiperequest.backgroundColor};" on:click={() => navigate('/new-provider')}>I have a swipe</button>
                 </div>
                 {:else}

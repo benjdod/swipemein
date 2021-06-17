@@ -9,12 +9,31 @@ import { dayMinutesToString } from "../util/listtime";
 
     classyear = classyear % 100;    // chops the last two decimal digits from the classyear (e.g. 2024 -> 24)
 
+    const acceptRequest = () => {
+        fetch('/api/data/accept-request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({uid: uid})
+        }).then(r => {
+            console.log(`you just accepted request ${uid}`);
+        }).catch(e => {
+            console.error(e);
+        })
+    }
+
 </script>
 
-<div id={`listing-${uid}`}>
+<div class="listing" id={`listing-${uid}`} on:click={acceptRequest}>
     <h3><strong>{name} '{classyear}</strong> &middot; {dayMinutesToString(time, {militaryTime: false})}</h3> 
     <p>{message}</p>
 </div>
 
 <style>
+    .listing {
+        border: 2px solid #ccc;
+        margin: 5px;
+        padding: 10px;
+    }
 </style>

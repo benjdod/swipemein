@@ -74,28 +74,52 @@ const deleteRequest = () => {
 </script>
 
 <main>
-    {#if hasRequest}
-        <ModalPopup
-            confirmaction={deleteRequest}
-            denyaction={() => navigate('/', {replace: true})}
-            confirm="Yes"
-            deny="No"
-        >
-            It looks like you have an active request. Do you want to cancel it and give a swipe instead?
-        </ModalPopup>
-    {/if}
-    <form id="provider-form">
-        <h2>What's your name?</h2>
-        <input type="text" bind:value={fields.name}>
-        <br>
-    </form>
-    {#if formError.hasError}
-        <p>{formError.message}</p>
-    {/if}
-    <button on:click={submitForm}>Submit</button>
-    <a use:link href="/">&LeftArrow; Back home</a>
+    <div class="bg">
+        <div class="frame">
+            {#if hasRequest}
+                <ModalPopup
+                    confirmaction={deleteRequest}
+                    denyaction={() => navigate('/', {replace: true})}
+                    confirm="Yes"
+                    deny="No"
+                >
+                    It looks like you have an active request. Do you want to cancel it and give a swipe instead?
+                </ModalPopup>
+            {/if}
+
+            <form id="provider-form">
+                <h2>What's your name?</h2>
+                <input type="text" bind:value={fields.name}>
+                <br>
+            </form>
+
+            {#if formError.hasError}
+                <p>{formError.message}</p>
+            {/if}
+
+            <button class="submitform" on:click={submitForm}>Submit</button>
+            <br>
+            <a use:link href="/">&LeftArrow; Back home</a>
+        </div>
+    </div>
+    
 </main>
 
 <style>
+
+    div.frame {
+        margin: 10px ;
+    }
+
+@media only screen and (min-width: 600px) {
+    div.frame {
+        text-align: center;
+        padding: 30px;
+    }
+}
+
+button.submitform {
+    margin: 5px 0 20px;
+}
 
 </style>

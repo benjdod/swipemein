@@ -8,6 +8,7 @@
 	import ProviderForm from "./pages/provider/provider-form.svelte"
 	import RequestDisplay from "./pages/requester/request-display.svelte"
 	import Chat from "./pages/chat.svelte"
+	import NotFound from "./pages/notfound.svelte"
 	export let url = '';
 </script>
 
@@ -19,6 +20,7 @@
 		<Route path="/new-provider"><ProviderForm/></Route>
 		<Route path="/chat"><Chat/></Route>
 		<Route path="/"><SplashScreen/></Route>
+		<Route path="*"><NotFound/></Route>
 	</Router>
 </main>
 
