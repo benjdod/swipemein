@@ -2,32 +2,30 @@ const ws = require('ws');
 const redis = require('redis');
 const url = require('url');
 
-const sessionChannelCount = 8;
-const chatSessions = new Array(sessionChannelCount).fill([]);
+const messageHub = require('./messagehub.js');
 
 let requestSockets = {};
-
-let currentChannel = 0;
-const advanceCurrentChannel = () => {currentChannel = (++currentChannel % sessionChannelCount)}
 
 const chatServer = new ws.Server({ noServer: true });
 chatServer.on('connection', socket => {
     socket.on('message', message => {
         console.log(message);
-        /*
-        conSessions.a.forEach(s => {
-            if (s != socket && s.readyState === ws.OPEN)
-                s.send(message);
-        })*/
     });
 });
 
 // handles connections created by the active request view on a requester's machine
 const requestServer = new ws.Server({noServer: true});
 requestServer.on('connection', socket => {
+
     /*
     setTimeout(() => {
-        socket.send('accept');
+
+        const acceptObject = {
+            type: 'accept',
+            id: '8-af+39Ha' // some session id...
+        }
+
+        socket.send(JSON.stringify(acceptObject));
     }, 3000);
     */
 });
@@ -36,7 +34,7 @@ requestServer.on('connection', socket => {
  * 
  * @param expressServer An express Server object which the web socket server should be bound to
  */
-exports.bindChatServer = (expressServer) => {
+exports.bindWSServers = (expressServer) => {
     expressServer.on('upgrade', (request, socket, head) => {
 
         if (request.url.match(/^\/ws\/chat/)) {
@@ -62,8 +60,26 @@ exports.bindChatServer = (expressServer) => {
     });
 }
 
-exports.notifyOfAcceptedRequest = (uid) => {
-    const targetSocket = requestSockets[uid];
-    if (! targetSocket) {console.error('no target socket!'); return;}
-    targetSocket.send('accept');
+/**
+ * Utility method for a provider endpoint to notify a requester that their request has been
+ * accepted. This method notifies the requester, ensures the requester also agrees, and then creates a new session 
+ * and distributes the session ID to both parties.
+ * @param {string} requestUID
+ * @param {string} sessionId
+ * @returns {boolean} whether or not the notification was accepted properly.
+ */
+exports.notifyOfAcceptedRequest = (requestUID, sessionId) => {
+    
+    const targetSocket = requestSockets[requestUID];
+    if (! targetSocket) {console.error('no target socket!'); return false;}
+
+    const acceptObject = {
+        type: 'accept',
+        id: sessionId // some session id...
+    }
+
+    targetSocket.send(JSON.stringify(acceptObject));
+    return true;
 }
+
+messageHub.initialize(2,2);

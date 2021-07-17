@@ -10,7 +10,7 @@ const config = require('../webpack.config.js');
 const compiler = webpack(config);
 
 const apiRoutes = require('./common.js');
-const {bindChatServer} = require('./endpoints/chatserver.js');
+const {bindWSServers} = require('./endpoints/chatserver.js');
 
 app.use(
     wdm(compiler, {
@@ -45,4 +45,4 @@ server.on('upgrade', (request, socket, head) => {
 });
 */
 
-bindChatServer(server);
+bindWSServers(server);

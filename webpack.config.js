@@ -7,6 +7,8 @@ const webpack = require('webpack');
 const mode = process.env.NODE_ENV || 'development';
 const prod = mode === 'production';
 
+//const jsConfig = require('./jsconfig.json');
+
 module.exports = {
 	entry: {
 		'build/bundle': !prod ? [
@@ -16,7 +18,8 @@ module.exports = {
 	},
 	resolve: {
 		alias: {
-			svelte: path.dirname(require.resolve('svelte/package.json'))
+			svelte: path.dirname(require.resolve('svelte/package.json')),
+			//...jsConfig.compilerOptions.paths
 		},
 		extensions: ['.mjs', '.js', '.svelte'],
 		mainFields: ['svelte', 'browser', 'module', 'main']

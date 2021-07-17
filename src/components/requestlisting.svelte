@@ -1,4 +1,6 @@
 <script>
+import { navigate } from "svelte-routing";
+
 import { dayMinutesToString } from "../util/listtime";
 
     export let time;                // time offset from 00:00 in minutes (e.g. 123 -> 2:03am)
@@ -10,6 +12,7 @@ import { dayMinutesToString } from "../util/listtime";
     classyear = classyear % 100;    // chops the last two decimal digits from the classyear (e.g. 2024 -> 24)
 
     const acceptRequest = () => {
+        console.log(`attempting to offer to request ${uid}`);
         fetch('/api/data/accept-request', {
             method: 'POST',
             headers: {
@@ -17,8 +20,10 @@ import { dayMinutesToString } from "../util/listtime";
             },
             body: JSON.stringify({uid: uid})
         }).then(r => {
-            console.log(`you just accepted request ${uid}`);
+            //console.log("request offer succesfful");
+            navigate('/chat', {replace: true});
         }).catch(e => {
+            console.log('request offer failed');
             console.error(e);
         })
     }

@@ -2,6 +2,7 @@
     import Requestlisting from "../../components/requestlisting.svelte";
     import "../../util/listtime"
 
+    import { link } from "svelte-routing"
 
     let listings = []  
 
@@ -23,7 +24,8 @@
             <Requestlisting {...listing}></Requestlisting>
         {/each}
         {:else}
-            <p>Looks like there are no listings right now!</p>
+            <p>Looks like there are no requests right now!</p>
+            <a use:link href="/">Go home</a>
         {/if}
     </div>
 </main>

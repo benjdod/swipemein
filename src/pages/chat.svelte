@@ -13,6 +13,9 @@
 
     try {
         const chat_session = Math.floor(Date.now() / (10 * 1000));
+
+        console.log(document.cookie);
+
         const ws = new WebSocket(`ws://localhost:8080/ws/chat/${chat_session}`);
 
         console.log('your chat session: ', chat_session);
@@ -30,9 +33,8 @@
 
                 ws.send(client_message);
                 chat_messages = [...chat_messages, {p: 0, text: client_message, time: Date.now()}];
+                client_message = '';
             }
-        
-            client_message = '';
         }
 
     } catch (e) {

@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 
 const apiRoutes = require('./common.js');
-const {bindChatServer} = require('./endpoints/chatserver.js');
+const {bindWSServers} = require('./endpoints/chatserver.js');
 
 app.use(express.static('./public'));        // frontend
 app.use('/api', apiRoutes);                 // backend
@@ -21,4 +21,4 @@ const server = app.listen(8080, () => {
     console.log('express app listening on 8080');
 })
 
-bindChatServer(server);
+bindWSServers(server);

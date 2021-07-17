@@ -12,6 +12,8 @@
     import ConfirmDialog from "../../components/confirmpopdown.svelte"
 
     let isActive = false;
+    let accepted = false;
+    let offerSessionId = '';
 
     let err = {
         noFields: false,
@@ -55,8 +57,22 @@
         try {
             const ws = new WebSocket(`ws://localhost:8080/ws/request/${fields.uid}`);
             ws.onmessage = ({data}) => {
-                if (data.match(/^accept/)) {
-                    alert('receiving a swipe, would you like to accept?');
+
+                data = JSON.parse(data);
+
+                
+
+                if (data.type == 'accept') {
+
+                    /* we know data is in the form of:
+                        {
+                            type: "accept",
+                            id: <session id string>
+                        }
+                    */ 
+
+                    accepted = true;
+                    offerSessionId = data.id;
                 }
             }
             ws.onerror = setNoConnection;
@@ -89,12 +105,25 @@
         })
     }
 
+    const rejectOffer = () => {
+
+    }
+
+    const acceptOffer = () => {
+
+        if (offerSessionId == '') {
+            console.error("no offer has been extended yet");
+            return;
+        }
+
+        document.cookie = `smi-session-id=${offerSessionId}`;
+        navigate('/chat', {replace: true});
+    }
 
 </script>
 
 <main>
     <div class="frame">
-        
         <p class="active-at">Request active at:</p>
         <h1 class="time">{isActive ? 'now' : dayMinutesToString(fields.time, {militaryTime: true})}</h1>
 
@@ -120,6 +149,9 @@
         </div>
         {#if dialog.delete}
             <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
+        {/if}
+        {#if accepted}
+            <ConfirmDialog confirm="Yes" deny="No" confirmaction={acceptOffer} denyaction={rejectOffer}>Someone has offered you a request, do you accept?</ConfirmDialog>
         {/if}
         {#if err.noConnection}
         <div class="error">
