@@ -5,7 +5,7 @@
 
 <script>
 
-    import { getDocCookies } from '../../util/doc-cookies'
+    import { getCookies } from '../../util/doc-cookies'
     import { dayMinutesToString, getDayMinutes, getDayMilliseconds } from '../../util/listtime'
     import { onMount } from 'svelte'
     import { navigate } from 'svelte-routing';
@@ -28,7 +28,7 @@
 
     // parse request fields from the previously stored cookie
     let fields = {};
-    let cookies = getDocCookies();
+    let cookies = getCookies();
     if (cookies['smi-request']) {
         let r =  JSON.parse(decodeURIComponent (cookies['smi-request']));
         fields = {...r};

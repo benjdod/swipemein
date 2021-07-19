@@ -67,7 +67,21 @@ The overall schema for the hub is as follows:
 
 
 const incPublisher = () => {
-    return (_currentpub > MAX_PUB_CONNECTIONS - 1) ? (_currentpub = 0) : (++_currentpub);
+    const ret = _currentpub;
+    _currentpub += 1;
+    if (_currentpub >= max_pub_connections) _currentpub = 0;
+    return ret;
+    //return (_currentpub > max_pub_connections - 1) ? (_currentpub = 0) : (++_currentpub);
+}
+
+/**
+ * Returns the next redis client to use for publishing
+ * @returns {redis.RedisClient} 
+ */
+const nextPublisher = () => {
+    const publisher = hub['publishers'][incPublisher()];
+    console.log(`next publisher: `, typeof publisher);
+    return publisher;
 }
 
 const getMinSessionIndex = () => {
@@ -99,7 +113,7 @@ const validateSessionIdForm = (sessionId) => {
     if (parts.length != 2) return -1;
 
     const slot_number = parseInt(parts[0], SLOT_RADIX);
-    if (slot_number < 0 || slot_number >= MAX_REAL_CONNS) {
+    if (slot_number < 0 || slot_number >= max_sub_connections) {
         return -1;
     } 
 
@@ -123,7 +137,7 @@ const validateSessionId = (sessionId) => {
 
     if ((idSlot = validateSessionIdForm(sessionId)) == -1) return -1;
 
-    if (hub[idSlot][sessionId] === undefined) return -1;
+    if (hub['slots'][idSlot]['sessions'][sessionId] === undefined) return -1;
 
     return idSlot;
 }
@@ -131,15 +145,29 @@ const validateSessionId = (sessionId) => {
 /**
  * Creates the template for a single empty slot. Used in initialization.
  */
-const makeSlot = () => {
+const makeSlot = (slotNumber) => {
     const sub = redis.createClient(REDIS_CLIENT_PORT);
 
-    sub.on('message', (channel, message) => {
-        const messageObj = JSON.parse(message);
+    sub.psubscribe(`chat:${slotNumber}*`);
+
+    // set up subscriber onMessage to send to the appropriate session
+    sub.on('pmessage', (pattern, channel, message) => {
+        const sessionId = channel.replace('chat:', '');
+        let slot = -1;
+
+        if ((slot = validateSessionId(sessionId)) == -1) {
+            console.error('An incoming message from redis is not from a channel for a valid session.');
+            return;
+        }
+
+        console.log(`new message from redis for session ${sessionId}`);
+        hub['slots'][slot]['sessions'][sessionId].forEach(participantSocket => {
+            participantSocket.send(message);
+        })
     })
 
     return {
-        subcriber: sub,
+        subscriber: sub,
         sessions: {}
     }
 }
@@ -157,10 +185,6 @@ const makeSlot = () => {
  */
 exports.initialize = (maxPubConnections, maxSubConnections) => {
     hub['publishers'] = new Array(maxPubConnections);
-    /*hub['publishers'].forEach(() => {
-        const client = redis.createClient(REDIS_CLIENT_PORT);
-        return client;
-    })*/
     hub['slots'] = new Array(maxSubConnections);
 
     // not sure why we have to use a simple loop rather than
@@ -169,16 +193,15 @@ exports.initialize = (maxPubConnections, maxSubConnections) => {
         hub.publishers[i] = redis.createClient(REDIS_CLIENT_PORT);
     }
     for (let i = 0; i < hub.slots.length; i++) {
-        hub.slots[i] = makeSlot();
+        hub.slots[i] = makeSlot(i);
     }
 
-   // hub['slots'] = new Array(maxSubConnections).map(() => makeSlot())
     max_pub_connections = maxPubConnections;
     max_sub_connections = maxSubConnections;
     sessioncounts = new Array(max_sub_connections).fill(0);
 
     console.log(`initialized a message hub with ${maxPubConnections} publishers and ${maxSubConnections} subscribers`);
-    console.log(hub);
+    //console.log(hub);
 }
 
 /** Inserts a pair of web sockets into the message hub
@@ -223,24 +246,34 @@ exports.createSession = () => {
     sessioncounts[targetSlot] += 1;
     sessiontotal += 1;
 
+    console.log(`messagehub successfully created a new session: ${sessionId}`);
+
     return sessionId;
 }
 
 /**
  * Adds a participant socket to a session.
- * @param {WebSocket} participant
+ * @param {WebSocket} participantSocket
  * @param {string} sessionId 
  */
-exports.addParticipant = (participant, sessionId) => {
+exports.addParticipant = (participantSocket, sessionId) => {
 
     let slotNumber = validateSessionId(sessionId);
 
     if (slotNumber == -1) {
-        console.error("invalid session ID");
+        console.error(`could not add participant to session ${sessionId} - invalid session ID`);
         return;
     }
 
-    hub[slotNumber]['sessions'][sessionId].push(participant);
+    const slot = hub['slots'][slotNumber];
+
+    slot['sessions'][sessionId].push(participantSocket);
+
+    participantSocket.on('message', message => {
+        // participantSocket.send(`echoing from message hub: ${message}`);
+        console.log(`message from participant in session ${sessionId}: `, message);
+        nextPublisher().publish(`chat:${sessionId}`, message, (err, iVal) => {console.log(`published to ${iVal} subscribers.`)});
+    })
 }
 
 /**
@@ -307,5 +340,5 @@ exports.shutdown = () => {
         // pub.quit();
     })
 
-    console.log(`message hub closed all publisher and subscriber connections.`);
+    console.log(`message hub has closed all publisher and subscriber connections and is shut down.`);
 }

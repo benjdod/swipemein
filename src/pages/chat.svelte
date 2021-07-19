@@ -1,6 +1,8 @@
 <script>
 
     import ChatView from "../components/chatview.svelte"
+    import ChatComposer from "../components/chatcomposer.svelte"
+    import { getCookies } from "../util/doc-cookies"
     import BadWords from "bad-words"
 
     let client_message = ''
@@ -9,19 +11,33 @@
 
     let chat_messages = []
 
+    let participantId = '0';
+
     const languageFilter = new BadWords();
 
-    try {
+    /**
+     * @throws Error
+     */
+    const initChatSession = () => {
         const chat_session = Math.floor(Date.now() / (10 * 1000));
 
-        console.log(document.cookie);
+        const cookies = getCookies();
 
-        const ws = new WebSocket(`ws://localhost:8080/ws/chat/${chat_session}`);
+        if (! 'smi-session-id' in cookies) {
+            const err = "could not initialize a chat session due to missing session id!"
+            throw Error(err);
+        }
 
-        console.log('your chat session: ', chat_session);
+        // using chat protocol v0.1
+        const ws = new WebSocket(`ws://localhost:8080/ws/chat/${cookies['smi-session-id']}`, `chat.smi.com`);
+
+        const pushNewMessage = ({data}) => {
+            chat_messages = [...chat_messages, {p: 1, text: data.toString(), time: Date.now()}];
+        }
 
         ws.onmessage = ({data}) => {
-            chat_messages = [...chat_messages, {p: 1, text: data.toString(), time: Date.now()}];
+            // get participant ID, then set to PushNewMessage
+            console.log(`new message: `, data);
         }
 
         sendMessage = () => {
@@ -36,7 +52,10 @@
                 client_message = '';
             }
         }
+    }
 
+    try {
+        initChatSession();
     } catch (e) {
         console.error(e);
     }
@@ -46,36 +65,11 @@
 
 <main>
     <div style="overflow: hidden;">
-        <ChatView messages={chat_messages}/>
-        <div class="composer">
-            <input type="text" bind:value={client_message} placeholder="send a message..." on:keyup={e => {if (e.key === 'Enter') sendMessage()}}>
-            <button on:click={sendMessage}>Send</button>
-        </div>
-        
+        <ChatView messages={chat_messages} selfId="0"/>
+        <ChatComposer bind:value={client_message} sendMessage={sendMessage}/>        
     </div>
 </main>
 
 <style>
-
-.composer {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background-color: rgb(223, 223, 223);
-}
-
-.composer input {
-    width: 79%;
-}
-
-.composer button {
-    width: 19%;
-    border: none;
-    border-radius: 5px;;
-    background-color: #13294B;
-    color: white;
-    font-weight: 700;
-
-}
 
 </style>

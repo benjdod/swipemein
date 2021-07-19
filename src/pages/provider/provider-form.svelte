@@ -7,12 +7,12 @@
 
 import { link, navigate } from "svelte-routing"
 import { onMount } from "svelte"
-import { actionOnCookie, getDocCookies, navigateOnCookie } from "../../util/doc-cookies"
+import { actionOnCookie, getCookies, navigateOnCookie } from "../../util/doc-cookies"
 import ModalPopup from "../../components/modalpopup.svelte"
 
 onMount(() => {
     /*
-    let cookies = getDocCookies();
+    let cookies = getCookies();
     if (cookies['smi-provider']) {
         navigate('/requests', {replace: 'true'});
     }*/

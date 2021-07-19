@@ -1,8 +1,29 @@
-<script>
+<!--@component
 
-    import * as animateScroll from "svelte-scrollto"
+    This is a view for a chat conversation. Text bubbles.
+
+    @param {Object[]} messages      Array of message objects to be displayed. Schema described below. 
+    @param {string} selfId   The viewer's participant ID. 
+
+    The schema of a message object is described below.
+
+    ```
+{
+    p: string,      // participant ID
+    text: string    // message text
+}
+    ```
+-->
+
+<script>
+import Chat from "../pages/chat.svelte";
+
+
+
+    //import * as animateScroll from "svelte-scrollto"
 
     export let messages = [];
+    export let selfId = '0';
 
     let messageWindow;
 
@@ -24,9 +45,9 @@
             </div>
         {:else}
             {#each messages as msg}
-            <div class="message-row" class:sender={msg.p === 0}>
-                <div class="message-container" class:sender={msg.p === 0}>
-                    <p class:sender={msg.p === 0}>{msg.text}</p>
+            <div class="message-row" class:sender={msg.p === selfId}>
+                <div class="message-container" class:sender={msg.p === selfId}>
+                    <p class:sender={msg.p === selfId}>{msg.text}</p>
                 </div>
             </div>
             {/each}

@@ -1,16 +1,23 @@
 const ws = require('ws');
 const redis = require('redis');
 const url = require('url');
+const crypto = require('crypto');
 
 const messageHub = require('./messagehub.js');
 
 let requestSockets = {};
 
 const chatServer = new ws.Server({ noServer: true });
-chatServer.on('connection', socket => {
-    socket.on('message', message => {
-        console.log(message);
-    });
+chatServer.on('connection', (socket, request) => {
+
+    console.log("chat server request url: ", request.url);
+
+    const sessionFull = request.url.replace('/ws/chat/', '');
+    messageHub.addParticipant(socket, sessionFull);
+
+    // add event listener to get session ID
+    // once it's obtained, remove event listener and
+    // do addParticipant(socket, sessionID)
 });
 
 // handles connections created by the active request view on a requester's machine

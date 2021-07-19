@@ -8,7 +8,7 @@
     import ModalPopup from "../../components/modalpopup.svelte"
 
     import { onMount } from 'svelte'
-    import { navigateOnCookie, actionOnCookie, getDocCookies } from '../../util/doc-cookies'
+    import { navigateOnCookie, actionOnCookie, getCookies } from '../../util/doc-cookies'
     import { navigate, link } from 'svelte-routing'
 
     // important constants
@@ -98,7 +98,7 @@
     }
 
     const deleteProvider = () => {
-        const cookies = getDocCookies();
+        const cookies = getCookies();
 
 
         let prov_fields = JSON.parse(decodeURIComponent (cookies['smi-provider']));
