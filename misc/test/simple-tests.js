@@ -1,3 +1,5 @@
+const log = require('ololog');
+
 const minarray = () => {
     const arr = [6,5,2,9,10,4]
 
@@ -26,4 +28,15 @@ const incAndWrap = () => {
     for (let g = 0; g < 10; g++) console.log(inc());
 }
 
-incAndWrap();
+const logging = () => {
+
+    log.info({set_uid: '48124123123', params: {
+        tuna: ['skipjack', 'yellowfin'],
+        hair: 'hairy',
+        swag: true,
+        time: 420
+    }});
+    log.error('hello');
+}
+
+logging();

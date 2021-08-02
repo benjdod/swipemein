@@ -28,11 +28,14 @@
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",
     "express": "^4.17.1",
+    "json-stringify-deterministic": "^1.0.1",
     "jsonwebtoken": "^8.5.1",
+    "microseconds": "^0.2.0",
+    "ololog": "^1.1.175",
     "redis": "^3.1.2",
+    "svelte-inline-svg": "^1.0.8",
     "svelte-routing": "^1.6.0",
     "svelte-scrollto": "^0.2.0",
-    "svelte-inline-svg": "^1.0.8",
     "ws": "^7.4.6"
   }
 }

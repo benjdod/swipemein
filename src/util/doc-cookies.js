@@ -7,11 +7,20 @@ export const getCookies = () => {
     }));
 }
 
+/**
+ * @param {string} cookieKey 
+ * @returns {boolean}
+ */
 export const hasCookie = (cookieKey) => {
     const cookies = getCookies();
     return (cookieKey in cookies);
 }
 
+/**
+ * 
+ * @param {string} cookiename 
+ * @param {string} route 
+ */
 export const navigateOnCookie = (cookiename, route) => {
     const cookies = getCookies();
     if (cookies[cookiename] !== undefined) {
@@ -19,6 +28,14 @@ export const navigateOnCookie = (cookiename, route) => {
     }
 }
 
+/**
+ * @callback cookieAction
+ */
+
+/**
+ * @param {*} cookiename 
+ * @param {cookieAction} action 
+ */
 export const actionOnCookie = (cookiename, action) => {
     const cookies = getCookies();
     if (cookies[cookiename] !== undefined) {

@@ -3,9 +3,11 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const redis = require('redis');
 const crypto = require('crypto');
+const log = require('ololog');
 
-const { notifyOfAcceptedRequest } = require('./chatserver');
+const { notifyOfAcceptedRequest } = require('./rt-servers');
 const messageHub = require('./messagehub');
+const { addRequest, deleteRequest, getActiveRequests, pendRequest } = require('./requests-shell');
 
 const client = redis.createClient(6379);
 const router = express.Router();
@@ -18,26 +20,42 @@ router.use(cookieParser());
 //
 
 // POST and DELETE requests
-router.post('/request', (req,res) => {
+router.post('/request', async (req,res) => {
     
     // note: uuid generation like this is very safe
     // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
     const request_uid = crypto.randomBytes(16).toString('hex');
+    console.info(`creating request ${request_uid}`);
 
     const request_data = {...req.body, uid: request_uid}
 
-    client.lpush('requests', JSON.stringify(request_data));
+    let newReq;
+
+    try {
+        newReq = await addRequest(request_data);
+    } catch (e) {
+        console.error(e);
+        res.sendStatus(500);
+    }
+
+    const payload = newReq[0];
 
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', JSON.stringify(request_data), {maxAge: msLeft, secure: true})
+    res.cookie('smi-request', payload, {maxAge: msLeft, secure: true})
         .sendStatus(200);
 });
 router.delete('/request', (req,res) => {
-    // WARNING: this might be sketchy 
-    client.lrem('requests', 0, JSON.stringify(req.body));
-    res.clearCookie('smi-request').sendStatus(200);
+
+    console.info(`deleting request ${req.body.uid}`);
+
+    deleteRequest(req.body).then(() => {
+        res.clearCookie('smi-request').sendStatus(200);
+    }).catch(e => {
+        console.error(e);
+        res.status(500).send('could not delete request due to a server error');
+    })
 })
 
 
@@ -62,27 +80,27 @@ router.delete('/provider', (req,res) => {
 
 // inform requester that provider has accepted request, OK provider to proceed to chat as well.
 router.post('/accept-request', (req,res) => {
-    console.log('accept request: ', req.body.uid);
 
     const sessionId = messageHub.createSession();
 
-    if (notifyOfAcceptedRequest(req.body.uid, sessionId))
+    if (notifyOfAcceptedRequest(req.body.uid, sessionId)) {
+        pendRequest(req.body, req.body.score);
         res.cookie('smi-session-id', sessionId).sendStatus(200);
-    else
+    }
+    else {
         res.sendStatus(500);
+    }
 })
 
 // generate list of recent requests for provider list view
 router.get('/requests', (req,res) => {
     // TODO: add params (skip, limit, sort) for infinite scrolling, filtering, etc
-    client.lrange('requests', 0, 10, (err, requests) => {
-        if (err) {
-            console.error(err);
-            res.sendStatus(500);
-            return;
-        }
-        res.set('Content-Type', 'application/json').send(JSON.stringify(requests.map(r => JSON.parse(r))));
-    });
+    getActiveRequests(0,20).then(requests => {
+
+        const real_requests = requests.map(r=>JSON.parse(r[0]));
+
+        res.set('Content-Type', 'application/json').send(real_requests);
+    })
 })
 
 module.exports = router;

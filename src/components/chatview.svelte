@@ -47,7 +47,7 @@ import Chat from "../pages/chat.svelte";
             {#each messages as msg}
             <div class="message-row" class:sender={msg.p === selfId}>
                 <div class="message-container" class:sender={msg.p === selfId}>
-                    <p class:sender={msg.p === selfId}>{msg.text}</p>
+                    <p class:sender={msg.p === selfId}>{msg.body}</p>
                 </div>
             </div>
             {/each}

@@ -1,5 +1,4 @@
 const express = require('express');
-const ws = require('ws');
 const webpack = require('webpack');
 const wdm = require('webpack-dev-middleware');
 const whm = require('webpack-hot-middleware');
@@ -10,7 +9,7 @@ const config = require('../webpack.config.js');
 const compiler = webpack(config);
 
 const apiRoutes = require('./common.js');
-const {bindWSServers} = require('./endpoints/chatserver.js');
+const {bindWSServers} = require('./endpoints/rt-servers.js');
 
 app.use(
     wdm(compiler, {
@@ -36,13 +35,5 @@ app.get('*', (req,res) => {
 const server = app.listen(8080, () => {
     console.log('express app listening on 8080');
 })
-
-/*
-server.on('upgrade', (request, socket, head) => {
-    wsServer.handleUpgrade(request, socket, head, socket => {
-        wsServer.emit('connection', socket, request);
-    });
-});
-*/
 
 bindWSServers(server);

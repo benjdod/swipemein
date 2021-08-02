@@ -1,5 +1,6 @@
 const redis = require('redis');
 const crypto = require('crypto');
+const { parseMessage } = require('../../src/util/chat-message-format');
 
 /** The hub object. This is populated and modified. */
 let hub  = {};
@@ -129,13 +130,13 @@ const validateSessionIdForm = (sessionId) => {
  * has been removed from the hub object.  
  * @param sessionId the session ID to be validated.
  * @returns The slot number of the given id if it is valid. Otherwise
- * returns -1.
+ * returns -1 or -2
  */
 const validateSessionId = (sessionId) => {
 
     let idSlot;
 
-    if ((idSlot = validateSessionIdForm(sessionId)) == -1) return -1;
+    if ((idSlot = validateSessionIdForm(sessionId)) == -1) return -2;
 
     if (hub['slots'][idSlot]['sessions'][sessionId] === undefined) return -1;
 
@@ -150,7 +151,9 @@ const makeSlot = (slotNumber) => {
 
     sub.psubscribe(`chat:${slotNumber}*`);
 
-    // set up subscriber onMessage to send to the appropriate session
+    // set up message listener 
+    // when this fires, it sends the messsage to all participants except the 
+    // sending participant.
     sub.on('pmessage', (pattern, channel, message) => {
         const sessionId = channel.replace('chat:', '');
         let slot = -1;
@@ -161,9 +164,15 @@ const makeSlot = (slotNumber) => {
         }
 
         console.log(`new message from redis for session ${sessionId}`);
-        hub['slots'][slot]['sessions'][sessionId].forEach(participantSocket => {
-            participantSocket.send(message);
-        })
+
+        const msg = parseMessage(message);
+        const participants = hub['slots'][slot]['sessions'][sessionId]
+
+        for (const id in participants) {
+            if (id != msg.p) {
+                participants[id].send(message);
+            }
+        }
     })
 
     return {
@@ -171,6 +180,8 @@ const makeSlot = (slotNumber) => {
         sessions: {}
     }
 }
+
+
 
 
 // 
@@ -201,35 +212,7 @@ exports.initialize = (maxPubConnections, maxSubConnections) => {
     sessioncounts = new Array(max_sub_connections).fill(0);
 
     console.log(`initialized a message hub with ${maxPubConnections} publishers and ${maxSubConnections} subscribers`);
-    //console.log(hub);
 }
-
-/** Inserts a pair of web sockets into the message hub
- * @param sockets an array of two websockets 
- * @param options options object
- * @returns base-64 conversation ID
- *
-exports.addSocketPair = (sockets, options) => {
-
-    if (sockets.length != 2) {
-        console.error("cannot add socket pair to message hub!");
-        console.error(`only conversations between two end machines using two sockets are supported. You gave ${sockets.length} sockets`);
-        return ''
-    }
-
-    const targetSlot = getMinSessionIndex();    // target the emptiest slot
-    const randomId = crypto.randomBytes(8).toString('base64').substring(0,8);
-    const conversationId = `${targetSlot.toString(SLOT_RADIX)}-${randomId}`;
-
-    hub[targetSlot].sessions[conversationId] = sockets;
-
-    // inc stats
-    sessioncounts[targetSlot] += 1;
-    sessiontotal += 1;
-
-    return conversationId;
-}
-*/
 
 /**
  * Initializes a conversation session.
@@ -240,7 +223,7 @@ exports.createSession = () => {
     const randomId = crypto.randomBytes(8).toString('base64').substring(0,8);
     const sessionId = `${targetSlot.toString(SLOT_RADIX)}-${randomId}`;
 
-    hub['slots'][targetSlot].sessions[sessionId] = [];
+    hub['slots'][targetSlot].sessions[sessionId] = {};
 
     // inc stats
     sessioncounts[targetSlot] += 1;
@@ -260,27 +243,69 @@ exports.addParticipant = (participantSocket, sessionId) => {
 
     let slotNumber = validateSessionId(sessionId);
 
-    if (slotNumber == -1) {
-        console.error(`could not add participant to session ${sessionId} - invalid session ID`);
+    if (slotNumber == -2) {
+        console.error(`could not add participant to session ${sessionId} - malformed session ID`);
         return;
+    } else if (slotNumber == -1) {
+        console.error(`could not add participant to session ${sessionId} - session does not exist`);
     }
 
     const slot = hub['slots'][slotNumber];
 
-    slot['sessions'][sessionId].push(participantSocket);
+    let firstMessage = true;
 
     participantSocket.on('message', message => {
-        // participantSocket.send(`echoing from message hub: ${message}`);
-        console.log(`message from participant in session ${sessionId}: `, message);
+
+        if (firstMessage) {
+            firstMessage = false;
+
+            if (message == 'hello') {
+                const participantId = crypto.randomBytes(8).toString('base64').substring(0,6);
+                slot['sessions'][sessionId][participantId] = participantSocket;
+                participantSocket.send(participantId);
+            } else {
+                console.log(`participant reported id as ${message}`);
+                const participantId = message;
+                slot['sessions'][sessionId][participantId] = participantSocket;
+                participantSocket.send(participantId);
+            }
+
+            return;
+        } 
+
+        messageBody = parseMessage(message);
+        console.log(`message in session ${sessionId} from participant ${messageBody.p}: ${messageBody.body}`);
         nextPublisher().publish(`chat:${sessionId}`, message, (err, iVal) => {console.log(`published to ${iVal} subscribers.`)});
     })
+
+    participantSocket.on('close', () => {
+
+        console.log(`closing socket for session ${sessionId}`);
+
+        const getKeyFromValue = (o, item) => {
+            for (k in o) {
+                if (o[k] == item) {
+                    return k;
+                }
+            }
+            return '';
+        }
+
+        const key = getKeyFromValue(slot['sessions'][sessionId], participantSocket);
+        if (key != '') {
+            delete slot['sessions'][sessionId][key];
+        }
+    })
+
+    console.log(`added a participant to session ${sessionId}. There are now ${Object.keys(slot['sessions'][sessionId]).length} participants.`);
+    console.log(`participants: `, slot['sessions'][sessionId]);
 }
 
 /**
  * Sends a message to a session
  * @param {string} sessionId ID of the session
  * @param {string} message string message
- */
+ *
 exports.sendMessage = (sessionId, message) => {
 
     let slotNumber = validateSessionIdForm(sessionId);
@@ -291,7 +316,7 @@ exports.sendMessage = (sessionId, message) => {
     }
 
     // hub[publishers][incPublisher()].publish(message, blah blah....)
-}
+}*/
 
 /** 
  * Removes all participant sockets matching the given
@@ -314,9 +339,11 @@ exports.endSession = (sessionId, options) => {
     }
 
     if (options.closeSockets === true) {
+        /*
         hub[slotNumber]['sessions'][sessionId].forEach(socket => {
             // socket.terminate() or something
         })
+        */
     }
 
     delete hub[slotNumber]['sessions'][sessionId];
