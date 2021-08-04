@@ -73,20 +73,26 @@ exports.bindWSServers = (expressServer) => {
  * and distributes the session ID to both parties.
  * @param {string} requestUID
  * @param {string} sessionId
+ * @param {number} score
  * @returns {boolean} whether or not the notification was accepted properly.
  */
-exports.notifyOfAcceptedRequest = (requestUID, sessionId) => {
+exports.notifyOfAcceptedRequest = (requestUID, sessionId, score) => {
     
     const targetSocket = requestSockets[requestUID];
     if (! targetSocket) {console.error('no target socket!'); return false;}
 
     const acceptObject = {
         type: 'accept',
-        id: sessionId // some session id...
+        id: sessionId,
+        score: score,
     }
 
     targetSocket.send(JSON.stringify(acceptObject));
     return true;
+}
+
+exports.notifyOfCancelledRequest = () => {
+    
 }
 
 messageHub.initialize(2,2);

@@ -1,6 +1,6 @@
 const redis = require('redis');
 const crypto = require('crypto');
-const { parseMessage } = require('../../src/util/chat-message-format');
+const { parseMessage, ptcCodeToStr } = require('../../src/util/chat-message-format');
 
 /** The hub object. This is populated and modified. */
 let hub  = {};
@@ -256,6 +256,7 @@ exports.addParticipant = (participantSocket, sessionId) => {
 
     participantSocket.on('message', message => {
 
+        // initialization step to give out/confirm a participant ID for the user's machine
         if (firstMessage) {
             firstMessage = false;
 
@@ -273,9 +274,11 @@ exports.addParticipant = (participantSocket, sessionId) => {
             return;
         } 
 
+        // otherwise...
         messageBody = parseMessage(message);
-        console.log(`message in session ${sessionId} from participant ${messageBody.p}: ${messageBody.body}`);
-        nextPublisher().publish(`chat:${sessionId}`, message, (err, iVal) => {console.log(`published to ${iVal} subscribers.`)});
+        console.log(`${messageBody.type} message in session ${sessionId} from participant ${messageBody.p}: ${messageBody.body}`);
+        //nextPublisher().publish(`chat:${sessionId}`, message, (err, iVal) => {console.log(`published to ${iVal} subscribers.`)});
+        this.sendMessage(sessionId, message);
     })
 
     participantSocket.on('close', () => {
@@ -297,26 +300,31 @@ exports.addParticipant = (participantSocket, sessionId) => {
         }
     })
 
-    console.log(`added a participant to session ${sessionId}. There are now ${Object.keys(slot['sessions'][sessionId]).length} participants.`);
-    console.log(`participants: `, slot['sessions'][sessionId]);
+    console.log(`added a participant to session ${sessionId}.`);
+    //console.log(`participants: `, slot['sessions'][sessionId]);
 }
 
 /**
  * Sends a message to a session
  * @param {string} sessionId ID of the session
  * @param {string} message string message
- *
+ */
 exports.sendMessage = (sessionId, message) => {
 
-    let slotNumber = validateSessionIdForm(sessionId);
+    let slotNumber = validateSessionId(sessionId);
 
-    if (slotNumber == -1) {
-        console.error('invalid conversation ID');
-        return;
+    if (slotNumber < 0) {
+        console.error(`could not send message to session ${sessionId} - it does not exist or the ID is malformed`);
     }
 
-    // hub[publishers][incPublisher()].publish(message, blah blah....)
-}*/
+    nextPublisher().publish(`chat:${sessionId}`, message, (err, n) => {
+        if (err) {
+            console.error(err);
+        } 
+
+        console.log(`published message to ${n} subscribers`);
+    })
+}
 
 /** 
  * Removes all participant sockets matching the given

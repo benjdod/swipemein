@@ -47,32 +47,35 @@ exports.ptcStrToCode = (str) => {
     return -1;
 }
 
+const secondsRightNow = () => {
+    return Math.floor(Date.now() / 1000);
+}
+
 /**
  * 
  * @param {string} participantId 
  * @param {string} command 
- * @param {number} [time]
- * @returns 
+ * @param {number} [time] - epoch time of message in seconds 
  */
 exports.createControlMessage = (participantId, command, time) => {
-    return `${ptc.CTRL.code},${participantId},${time||Date.now()},${command}`;
+    return `${ptc.CTRL.code},${participantId},${time||secondsRightNow()},${command}`;
 }
 /**
  * @param {string} participantId 
  * @param {string} message 
- * @param {number} [time]
+ * @param {number} [time] - epoch time of message in seconds 
  */
 exports.createTextualMessage = (participantId, message, time) => {
-    return `${ptc.TXT.code},${participantId},${time||Date.now()},${message}`;
+    return `${ptc.TXT.code},${participantId},${time||secondsRightNow()},${message}`;
 }
 /**
  * @param {string} participantId 
- * @param {number} latitude
- * @param {number} longitude
- * @param {number} [time] 
+ * @param {number} latitude 
+ * @param {number} longitude 
+ * @param {number} [time] - epoch time of message in seconds 
  */
 exports.createGeoMessage = (participantId, latitude, longitude, time) => {
-    return `${ptc.GEO.code},${participantId},${time||Date.now()},${latitude},${longitude}`;
+    return `${ptc.GEO.code},${participantId},${time||secondsRightNow()},${latitude},${longitude}`;
 }
 
 
@@ -106,8 +109,12 @@ exports.parseMessage = (message) => {
         if (splitMessage.length != 5) 
             throw Error(`invalid number of arguments for GEO message! (expected 5, saw ${splitMessage.length})`);
 
-        out.lat = parseFloat(splitMessage[3]);
-        out.lon = parseFloat(splitMessage[4]);
+        const ll = {
+            lat: parseFloat(splitMessage[3]),
+            lon: parseFloat(splitMessage[4])
+        }
+
+        out.body = ll;
     } else {
         out.body = splitMessage.slice(3).join(',');
     }

@@ -8,17 +8,18 @@ import { dayMinutesToString } from "../util/listtime";
     export let classyear;
     export let message;
     export let uid;
+    export let score;
 
     classyear = classyear % 100;    // chops the last two decimal digits from the classyear (e.g. 2024 -> 24)
 
     const acceptRequest = () => {
-        console.log(`attempting to offer to request ${uid}`);
-        fetch('/api/data/accept-request', {
+        console.log(`attempting to offer to request ${uid} with score ${score}`);
+        fetch('/api/data/pend-request', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({uid: uid})
+            body: JSON.stringify({uid: uid, score: score})
         }).then(r => {
             //console.log("request offer succesfful");
             navigate('/chat', {replace: true});

@@ -68,7 +68,7 @@ exports.getActiveRequests = async (start, limit) => {
 /**
  * Adds a request to the active requests. 
  * @param {Object} request the request object 
- * @returns the score value for the newly added request
+ * @returns an array containing - 1) the payload string, 2) the score of the request
  * @throws Error if the request is not an object, which is necessary for serialization
  */
 exports.addRequest = async (request) => {
@@ -98,6 +98,12 @@ exports.addRequest = async (request) => {
     ]
 }
 
+/**
+ * 
+ * @param {string | Object} request 
+ * @param {number} score 
+ * @returns {void}
+ */
 exports.pendRequest = async (request, score) => {
 
     if (typeof request == 'object') {
@@ -109,16 +115,27 @@ exports.pendRequest = async (request, score) => {
         score = await zscoreSync(activeRequestsKey, request);
     }
 
-    const zremSync = promisify(client.zrem).bind(client);
     const setSync = promisify(client.set).bind(client);
-
-    //client.zrem(activeRequestsKey, request);
-    // client.set(`requests:pending:${0-score}`, request);
-    await zremSync(activeRequestsKey, request);
+    const zremrangebyscoreSync = promisify(client.zremrangebyscore).bind(client);
+    const nremoved=await zremrangebyscoreSync(activeRequestsKey, score, score);
+    console.log(`removed ${nremoved} members from active requests`);
     await setSync(`requests:pending:${0-score}`, request);
     return;
 }
 
+exports.pendRequestByScore = async (score) => {
+    const zrangebyscoreSync = promisify(client.zrangebyscore).bind(client);
+    const setSync = promisify(client.set).bind(client);
+    const zremrangebyscoreSync = promisify(client.zremrangebyscore).bind(client);
+    const request = await zrangebyscoreSync(activeRequestsKey, score, score);
+    const nremoved=await zremrangebyscoreSync(activeRequestsKey, score, score);
+    await setSync(`requests:pending:${0-score}`, request);
+}
+
+/**
+ * 
+ * @param {number} score 
+ */
 exports.unpendRequest = async (score) => {
     const getSync = promisify(client.get).bind(client);
 
@@ -128,6 +145,9 @@ exports.unpendRequest = async (score) => {
     console.log('unpended request');
 }
 
+/**
+ * @param {number} score 
+ */
 exports.completeRequest = async (score) => {
     const renameSync = promisify(client.get).bind(client);
     await renameSync(`requests:pending:${0-score}`, `requests:complete:${0-score}`);
@@ -153,3 +173,10 @@ exports.setClient = (newClient) => {
     client = newClient;
     return true;
 }
+
+const test = async () => {
+    const pscore = await exports.addRequest({hello: 545});
+    await exports.pendRequestByScore(pscore[1]);
+    //await exports.unpendRequest(pscore[1]);
+}
+

@@ -7,7 +7,8 @@ const log = require('ololog');
 
 const { notifyOfAcceptedRequest } = require('./rt-servers');
 const messageHub = require('./messagehub');
-const { addRequest, deleteRequest, getActiveRequests, pendRequest } = require('./requests-shell');
+const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest } = require('./requests-shell');
+const { createControlMessage } = require('../../src/util/chat-message-format');
 
 const client = redis.createClient(6379);
 const router = express.Router();
@@ -79,17 +80,33 @@ router.delete('/provider', (req,res) => {
 })
 
 // inform requester that provider has accepted request, OK provider to proceed to chat as well.
-router.post('/accept-request', (req,res) => {
+router.post('/pend-request', async (req,res) => {
 
     const sessionId = messageHub.createSession();
 
-    if (notifyOfAcceptedRequest(req.body.uid, sessionId)) {
-        pendRequest(req.body, req.body.score);
-        res.cookie('smi-session-id', sessionId).sendStatus(200);
+    if (notifyOfAcceptedRequest(req.body.uid, sessionId, req.body.score)) {
+        await pendRequestByScore(req.body.score);
+        res.cookie('smi-session-id', sessionId)
+            .cookie('smi-request-score', req.body.score)
+            .sendStatus(200);
     }
     else {
         res.sendStatus(500);
     }
+})
+
+router.post('/unpend-request', async (req, res) => {
+    unpendRequest(req.body.score)
+    .then(() => {
+        messageHub.sendMessage(req.body.sessionId, createControlMessage(req.body.p, 'CANCEL'));
+    })
+    .then(() => {
+        res.sendStatus(200);
+    })
+    .catch(e => {
+        console.error(e);
+        res.sendStatus(500);
+    })
 })
 
 // generate list of recent requests for provider list view

@@ -60,19 +60,19 @@
 
                 data = JSON.parse(data);
 
-                
-
                 if (data.type == 'accept') {
 
                     /* we know data is in the form of:
                         {
                             type: "accept",
                             id: <session id string>
+                            score: <request score>
                         }
                     */ 
 
-                    accepted = true;
+                    accepted = true;    // shows accept offer dialog
                     offerSessionId = data.id;
+                    document.cookie = `smi-request-score=${data.score}`;
                 }
             }
             ws.onerror = setNoConnection;

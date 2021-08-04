@@ -6,6 +6,7 @@
     import { ptc, createTextualMessage, createControlMessage, parseMessage } from "../util/chat-message-format"
     import BadWords from "bad-words"
     import { navigate } from "svelte-routing";
+    import { link } from "svelte-routing"
 
     let client_message = ''
 
@@ -19,7 +20,8 @@
     languageFilter.removeWords(
         'hell',
         'damn',
-        'sadist'
+        'sadist',
+        'screw'
     );
 
     /**
@@ -51,10 +53,21 @@
             }
             
             const message = parseMessage(data);
-            console.log(data);
             console.log(message);
+            console.log(data);
 
-            if (message.type == ptc.TXT.str) {
+            if (message.type == ptc.CTRL.str) {
+                if (message.body == 'CANCEL') {
+                    // request pend is cancelled; notify user accordingly
+                    alert('this offer has been cancelled by the other party. You will be redirected');
+
+                    const to = hasCookie('smi-request') ? '/active-request' : '/requests'
+
+                    setTimeout(() => {
+                        navigate(to, {replace: true});
+                    }, 3);
+                }
+            } else if (message.type == ptc.TXT.str) {
                 chat_messages = [...chat_messages, message];
             }
         }
@@ -105,9 +118,25 @@
     }
 
     const cancelPendingRequest = () => {
-        navigate('/', {
-            replace: true
+        fetch('/api/data/unpend-request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                score: parseInt(getCookies()['smi-request-score']),
+                p: participantId,
+                sessionId: getCookies()['smi-session-id']
+            })
+        }).then(r => {
+            const to = hasCookie('smi-request') ? '/active-request' : '/requests'
+            navigate(to, {
+                replace: true
+            })
+        }).catch(e => {
+            console.error('could not unpend request!');
         })
+        
     }
 
     
@@ -116,6 +145,7 @@
 <main>
     <div style="overflow: hidden;">
         <div>
+            <a use:link href="/">Home</a>
             <button on:click={cancelPendingRequest}>Cancel</button>
         </div>
         <ChatView messages={chat_messages} selfId={participantId}/>
