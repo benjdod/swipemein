@@ -10,6 +10,7 @@
     import { onMount } from 'svelte'
     import { navigate } from 'svelte-routing';
     import ConfirmDialog from "../../components/confirmpopdown.svelte"
+    import ModalPopup from "../../components/modalpopup.svelte"
 
     let isActive = false;
     let accepted = false;
@@ -100,8 +101,10 @@
             body: JSON.stringify(fields)
         }).then(res => {
             navigate('/');
-        }).catch(err => {
-            console.error(err);
+        }).catch(e => {
+            console.error(e);
+
+            e.message = 'could not delete request!'
         })
     }
 
@@ -119,6 +122,10 @@
         document.cookie = `smi-session-id=${offerSessionId}`;
         navigate('/chat', {replace: true});
     }
+
+    setTimeout(() => {
+        err.message = 'test error';
+    }, 1000)
 
 </script>
 
@@ -147,16 +154,19 @@
                 <button class="halfwidth renew">Renew</button>
             -->
         </div>
-        {#if dialog.delete}
+        {#if dialog.delete && !err.noConnection}
             <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
         {/if}
         {#if accepted}
             <ConfirmDialog confirm="Yes" deny="No" confirmaction={acceptOffer} denyaction={rejectOffer}>Someone has offered you a request, do you accept?</ConfirmDialog>
         {/if}
-        {#if err.noConnection}
+        {#if err.noConnection || err.message.length > 0}
+        <ModalPopup>{err.message}</ModalPopup>
+        <!--
         <div class="error">
             <p>Error: {err.message}</p>
         </div>
+    -->
         {/if}
     </div>
 </main>

@@ -30,6 +30,7 @@
     "express": "^4.17.1",
     "json-stringify-deterministic": "^1.0.1",
     "jsonwebtoken": "^8.5.1",
+    "leaflet": "^1.7.1",
     "microseconds": "^0.2.0",
     "ololog": "^1.1.175",
     "redis": "^3.1.2",

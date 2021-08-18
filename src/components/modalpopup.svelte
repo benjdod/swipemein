@@ -2,20 +2,29 @@
 
     export let confirm = 'confirm'
     export let deny = 'deny'
-    export let confirmaction = () => {};
-    export let denyaction = () => {};
+    export let confirmaction = undefined;
+    export let denyaction = undefined;
+
+    // one of 'bottom' | 'top'
+    export let position = 'bottom';
 
 </script>
 
 <main>
     <div class="modal-outer">
-        <div class="modal-box">
+        <div class="modal-box {position}">
             <slot/>
+            {#if confirmaction != undefined || denyaction != undefined}
             <br>
             <div class="choices">
+                {#if confirmaction != undefined}
                 <button class="halfwidth" on:click={denyaction}>{deny}</button>
+                {/if}
+                {#if denyaction != undefined}
                 <button class="halfwidth" on:click={confirmaction}>{confirm}</button>
+                {/if}
             </div>
+            {/if}
         </div>
     </div>
 </main>
@@ -44,12 +53,19 @@
     }*/
     .modal-box {
         position: fixed;
-        bottom: 0;
         left: 0;
         background-color: white;
         width: 100vw;
         padding: 50px;
         word-wrap: break-word;
+    }
+
+    .modal-box.bottom {
+        bottom: 0;
+    }
+
+    .modal-box.top {
+        top: 0;
     }
 
     .choices {

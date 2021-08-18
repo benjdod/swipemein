@@ -1,3 +1,7 @@
 pending a request does not remove it from active list
 
 - need to operate by score instead of UID, which is only used as a key for the request sockets
+
+
+Grandmother'sCreamAndCrackers
+JombaTheBeagleConsideredDirectly

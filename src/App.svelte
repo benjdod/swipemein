@@ -7,6 +7,7 @@
 	import RequesterForm from "./pages/requester/request-form.svelte"
 	import ProviderForm from "./pages/provider/provider-form.svelte"
 	import RequestDisplay from "./pages/requester/request-display.svelte"
+	import Completed from "./pages/completed.svelte"
 	import Chat from "./pages/chat.svelte"
 	import NotFound from "./pages/notfound.svelte"
 	export let url = '';

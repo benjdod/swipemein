@@ -16,7 +16,7 @@
 -->
 
 <script>
-import Chat from "../pages/chat.svelte";
+import Chat from "../../pages/chat.svelte";
 
 
 

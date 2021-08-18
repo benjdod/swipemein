@@ -111,7 +111,7 @@ exports.parseMessage = (message) => {
 
         const ll = {
             lat: parseFloat(splitMessage[3]),
-            lon: parseFloat(splitMessage[4])
+            lng: parseFloat(splitMessage[4])
         }
 
         out.body = ll;
@@ -121,8 +121,3 @@ exports.parseMessage = (message) => {
 
     return out;
 }
-
-testmsg = exports.createTextualMessage('hef83s', 'heflllefooaef');
-
-console.log(testmsg);
-console.log(exports.parseMessage(testmsg));

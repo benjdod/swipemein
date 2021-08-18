@@ -1,6 +1,6 @@
 const redis = require('redis');
 const crypto = require('crypto');
-const { parseMessage, ptcCodeToStr } = require('../../src/util/chat-message-format');
+const { parseMessage, ptcCodeToStr, createGeoMessage } = require('../../src/util/chat-message-format');
 
 /** The hub object. This is populated and modified. */
 let hub  = {};
@@ -80,9 +80,7 @@ const incPublisher = () => {
  * @returns {redis.RedisClient} 
  */
 const nextPublisher = () => {
-    const publisher = hub['publishers'][incPublisher()];
-    console.log(`next publisher: `, typeof publisher);
-    return publisher;
+    return hub['publishers'][incPublisher()];
 }
 
 const getMinSessionIndex = () => {
@@ -248,6 +246,7 @@ exports.addParticipant = (participantSocket, sessionId) => {
         return;
     } else if (slotNumber == -1) {
         console.error(`could not add participant to session ${sessionId} - session does not exist`);
+        return;
     }
 
     const slot = hub['slots'][slotNumber];
@@ -276,7 +275,7 @@ exports.addParticipant = (participantSocket, sessionId) => {
 
         // otherwise...
         messageBody = parseMessage(message);
-        console.log(`${messageBody.type} message in session ${sessionId} from participant ${messageBody.p}: ${messageBody.body}`);
+        console.log(`${messageBody.type} message in session ${sessionId} from participant ${messageBody.p}`);
         //nextPublisher().publish(`chat:${sessionId}`, message, (err, iVal) => {console.log(`published to ${iVal} subscribers.`)});
         this.sendMessage(sessionId, message);
     })
@@ -297,6 +296,10 @@ exports.addParticipant = (participantSocket, sessionId) => {
         const key = getKeyFromValue(slot['sessions'][sessionId], participantSocket);
         if (key != '') {
             delete slot['sessions'][sessionId][key];
+        }
+
+        if (Object.keys(slot['sessions'][sessionId]).length == 0) {
+            delete slot['sessions'][sessionId];
         }
     })
 
@@ -321,8 +324,6 @@ exports.sendMessage = (sessionId, message) => {
         if (err) {
             console.error(err);
         } 
-
-        console.log(`published message to ${n} subscribers`);
     })
 }
 

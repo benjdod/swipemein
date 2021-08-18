@@ -8,6 +8,34 @@ const deterministicStringify = require('json-stringify-deterministic');
 const activeRequestsKey = `requests:active`;
 const pendingRequestsPrefix = `requests:pending:`;
 
+const wipeSet = new Set();
+
+const addWipe = (request) => {
+    wipeSet.add(JSON.parse(request).uid);
+}
+
+const wipedRequests = (requests) => {
+    if (wipeSet.size == 0) return requests;
+
+    console.log('wiping request');
+    return requests.filter(r => {
+        r = JSON.parse(r[0]);
+        console.log(r);
+        return ! (wipeSet.has(r.uid));
+    });
+}
+
+const deleteWipes = async () => {
+    for (let r of wipeSet) { 
+        try {
+            await exports.deleteRequest(r);
+            wipeSet.delete(r);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
 // --- Utility funcs ----------------
 
 const parseScoredZRange = (range) => {
@@ -50,6 +78,12 @@ const getTimeBasedScore = () => {
 // --- Export funcs -------------------
 //
 
+/**
+ * 
+ * @param {number} start 
+ * @param {number} limit 
+ * @returns 
+ */
 exports.getActiveRequests = async (start, limit) => {
     const _start = start || 0;
     const _limit = limit || 20;
@@ -58,7 +92,8 @@ exports.getActiveRequests = async (start, limit) => {
 
     try {
         const range = await zrangeSync(activeRequestsKey, _start, _start + _limit, 'WITHSCORES');
-        return parseScoredZRange(range);
+        const parsedRange = parseScoredZRange(range);
+        return wipedRequests(parsedRange);
     } catch (e) {
         console.error(e);
         return [];
@@ -154,14 +189,22 @@ exports.completeRequest = async (score) => {
 }
 
 /**
- * @param {string} request 
+ * @param {string | Object} request 
  */
 exports.deleteRequest = async (request) => {
+
+    deleteWipes();
 
     if (typeof request == 'object') request = deterministicStringify(request);
 
     zremSync = promisify(client.zrem).bind(client);
-    await zremSync(activeRequestsKey, request);
+    try {
+        wipeSet.add(request);
+        await zremSync(activeRequestsKey, request);
+        wipeSet.delete(request);
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 exports.setClient = (newClient) => {
@@ -175,8 +218,10 @@ exports.setClient = (newClient) => {
 }
 
 const test = async () => {
-    const pscore = await exports.addRequest({hello: 545});
-    await exports.pendRequestByScore(pscore[1]);
+    const pscore = await exports.addRequest({hello: 545, uid: '69af'});
+    await exports.addRequest({zingle: 19, uid: 'f7a9'});
+    await exports.deleteRequest({hello: 545, uid: '69af'});
+    const reqs = await exports.getActiveRequests();
+    console.log(reqs);
     //await exports.unpendRequest(pscore[1]);
 }
-

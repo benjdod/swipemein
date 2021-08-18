@@ -38,5 +38,3 @@ const logging = () => {
     }});
     log.error('hello');
 }
-
-logging();

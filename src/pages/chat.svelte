@@ -1,12 +1,13 @@
 <script>
 
-    import ChatView from "../components/chatview.svelte"
-    import ChatComposer from "../components/chatcomposer.svelte"
+    import MessageView from "../components/chat/messageview.svelte"
+    import ChatComposer from "../components/chat/chatcomposer.svelte"
     import { getCookies, hasCookie } from "../util/doc-cookies"
-    import { ptc, createTextualMessage, createControlMessage, parseMessage } from "../util/chat-message-format"
+    import { ptc, createTextualMessage, parseMessage, createGeoMessage } from "../util/chat-message-format"
     import BadWords from "bad-words"
     import { navigate } from "svelte-routing";
     import { link } from "svelte-routing"
+    import Chatmap from "../components/chatmap.svelte";
 
     let client_message = ''
 
@@ -16,6 +17,16 @@
 
     let participantId = '0';
 
+    let coords = {
+        lat: 0,
+        lng: 0
+    }
+
+    let mycoords = {
+        lat: 34.663569,
+        lng: -77.062709
+    }
+
     const languageFilter = new BadWords();
     languageFilter.removeWords(
         'hell',
@@ -23,6 +34,10 @@
         'sadist',
         'screw'
     );
+
+    let geoInterval;
+
+    let closeWebSocket = () => {};
 
     /**
      * @throws Error
@@ -33,13 +48,34 @@
 
         if (! 'smi-session-id' in cookies) {
             const err = "could not initialize a chat session due to missing session id!"
+            setErrorState(err);
             throw Error(err);
         }
 
         // using chat protocol v0.1
         const ws = new WebSocket(`ws://localhost:8080/ws/chat/${decodeURIComponent(cookies['smi-session-id'])}`, `chat.smi.com`);
 
+        closeWebSocket = (code) => ws.close(code);
+
         let firstMessage = true;
+
+        ws.onopen = () => {
+            // if the user reloaded, resend the id
+            if (hasCookie(`smi-participant-id`)) {
+                console.log('sending stored participant id: ', getCookies()['smi-participant-id']);
+                ws.send(getCookies()['smi-participant-id']);
+            } else {
+                // say hello!
+                console.log('sending a hello message to get a new participant ID');
+                ws.send('hello');
+            }
+
+            geoInterval = setInterval(() => {
+                ws.send(createGeoMessage(participantId, mycoords.lat, mycoords.lng));
+                mycoords.lat += 0.005;
+                mycoords.lng += 0.007;
+            }, 2000);
+        }
 
         const handleMessage = ({data}) => { 
 
@@ -61,6 +97,11 @@
                     // request pend is cancelled; notify user accordingly
                     alert('this offer has been cancelled by the other party. You will be redirected');
 
+                    try {
+                        clearInterval(geoInterval)
+                    } catch (e) {}
+
+                    closeWebSocket();
                     const to = hasCookie('smi-request') ? '/active-request' : '/requests'
 
                     setTimeout(() => {
@@ -69,21 +110,13 @@
                 }
             } else if (message.type == ptc.TXT.str) {
                 chat_messages = [...chat_messages, message];
+            } else if (message.type == ptc.GEO.str) {
+                coords = message.body;
             }
         }
 
         ws.onmessage = handleMessage;
-        ws.onopen = () => {
-            // if the user reloaded, resend the id
-            if (hasCookie(`smi-participant-id`)) {
-                console.log('sending stored participant id: ', getCookies()['smi-participant-id']);
-                ws.send(getCookies()['smi-participant-id']);
-            } else {
-                // say hello!
-                console.log('sending a hello message to get a new participant ID');
-                ws.send('hello');
-            }
-        }
+        
         /*ws.removeEventListener('message',getParticipantId);
         ws.onmessage = ({data}) => {
             // get participant ID, then set to PushNewMessage
@@ -104,17 +137,19 @@
                     chat_messages = [...chat_messages, parseMessage(newMessage)];
                     client_message = '';
                 } catch (e) {
-                    console.error(e);
+                    setErrorState(e);
                     alert('there was an error while sending your message!');
                 }
             }
         }
+
+        
     }
 
     try {
         initChatSession();
     } catch (e) {
-        console.error(e);
+        setErrorState(e);
     }
 
     const cancelPendingRequest = () => {
@@ -126,17 +161,23 @@
             body: JSON.stringify({
                 score: parseInt(getCookies()['smi-request-score']),
                 p: participantId,
-                sessionId: getCookies()['smi-session-id']
+                sessionId: decodeURIComponent(getCookies()['smi-session-id'])
             })
         }).then(r => {
+            clearInterval(geoInterval);
+            closeWebSocket();
             const to = hasCookie('smi-request') ? '/active-request' : '/requests'
             navigate(to, {
                 replace: true
             })
         }).catch(e => {
-            console.error('could not unpend request!');
+            setErrorState('could not unpend request!');
         })
         
+    }
+
+    const setErrorState = (message) => {
+        console.error(message);
     }
 
     
@@ -144,11 +185,12 @@
 
 <main>
     <div style="overflow: hidden;">
+        <Chatmap height={300} latitude={coords.lat} longitude={coords.lng}/>
         <div>
             <a use:link href="/">Home</a>
             <button on:click={cancelPendingRequest}>Cancel</button>
         </div>
-        <ChatView messages={chat_messages} selfId={participantId}/>
+        <MessageView messages={chat_messages} selfId={participantId}/>
         <ChatComposer bind:value={client_message} sendMessage={sendMessage}/>        
     </div>
 </main>
