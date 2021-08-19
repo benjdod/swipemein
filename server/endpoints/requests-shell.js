@@ -216,6 +216,7 @@ exports.deleteRequest = async (score) => {
     zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
     try {
         wipeSet.add(score);
+		throw Error('a wrench in the system!')
         await zRemRangeByScoreSync(activeRequestsKey, score, score);
         wipeSet.delete(score);
     } catch (e) {

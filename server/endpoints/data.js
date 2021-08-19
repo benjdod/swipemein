@@ -68,7 +68,7 @@ router.delete('/request', (req,res) => {
 
     console.info(`deleting request ${req.body.uid}`);
 
-    deleteRequest(req.body).then(() => {
+    deleteRequest(req.body.score).then(() => {
         res.clearCookie('smi-request').sendStatus(200);
     }).catch(e => {
         console.error(e);
@@ -105,7 +105,7 @@ router.post('/pend-request', async (req,res) => {
 	// is actually a legit provider and not some trickster 
 	// looking to strike at the soft underbelly of this website
 
-    if (notifyOfAcceptedRequest(req.body.uid, sessionId, req.body.score)) {
+    if (notifyOfAcceptedRequest(sessionId, req.body.score)) {
         await pendRequestByScore(req.body.score);
         res.cookie('smi-session-id', sessionId)
             .cookie('smi-request-score', req.body.score)

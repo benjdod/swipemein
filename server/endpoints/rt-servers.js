@@ -60,6 +60,8 @@ exports.bindWSServers = (expressServer) => {
 
                 const req_uid = request.url.replace('/ws/request/', '');
 
+				console.log('rt server adding request socket: ', req_uid);
+
                 requestSockets[req_uid] = socket;
                 requestServer.emit('connection', socket, request);
             });
@@ -71,15 +73,16 @@ exports.bindWSServers = (expressServer) => {
  * Utility method for a provider endpoint to notify a requester that their request has been
  * accepted. This method notifies the requester, ensures the requester also agrees, and then creates a new session 
  * and distributes the session ID to both parties.
- * @param {string} requestUID
  * @param {string} sessionId
  * @param {number} score
  * @returns {boolean} whether or not the notification was accepted properly.
  */
-exports.notifyOfAcceptedRequest = (requestUID, sessionId, score) => {
+exports.notifyOfAcceptedRequest = ( sessionId, score) => {
+
+	console.log('rt server looking for request socket: ', score);
     
-    const targetSocket = requestSockets[requestUID];
-    if (! targetSocket) {console.error('no target socket!'); return false;}
+    const targetSocket = requestSockets[score];
+    if (! targetSocket) {console.error('cannot notify requester of offer: can\'t find their socket...'); return false;}
 
     const acceptObject = {
         type: 'accept',

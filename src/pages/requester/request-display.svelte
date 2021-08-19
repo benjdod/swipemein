@@ -27,48 +27,11 @@
         renew: false
     }
 
-    // parse request fields from the previously stored cookie
-    let fields = {};
-    let cookies = getCookies();
-    if (cookies['smi-request']) {
-		const requestParamURL = '/api/data/request?score=' + parseInt(cookies['smi-request']);
-		fetch(requestParamURL, {
-			method: 'GET',
-			headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
-				}
-			}).then(r => r.json())
-			.then(r => {
-				fields = {...r};
-			})
-			.catch(e => {
-					console.error(e);
-					err.message = 'there\'s something screwy going on here... we can\'t get your request'
-			});
-    } else {
-        err.noFields = true;
-    }
-
-    // if the time display is still displaying a time in the future,
-    // set a timeout that changes it when the request becomes active
-    const msec = getDayMilliseconds();
-    const time_ms = fields.time * 60 * 1000;
-    if (msec > time_ms) {
-        isActive = true;
-    } else {
-        setTimeout(() => {
-            isActive = true;
-        }, time_ms - msec);
-    }
-
-    onMount(() => {
-
-        if (err.noFields) navigate('/new-request');
-
+	const setupRequestSocket = () => {
         const setNoConnection = () => {err.noConnection = true; err.message = 'You\'re not connected! Refresh to reconnect'}
 
         try {
-            const ws = new WebSocket(`ws://localhost:8080/ws/request/${fields.uid}`);
+            const ws = new WebSocket(`ws://localhost:8080/ws/request/${fields.score}`);
             ws.onmessage = ({data}) => {
 
                 data = JSON.parse(data);
@@ -94,6 +57,48 @@
             console.error(e);
             setNoConnection();
         }
+
+	}
+
+    let fields = {};
+    let cookies = getCookies();
+    if (cookies['smi-request']) {
+		const requestParamURL = '/api/data/request?score=' + parseInt(cookies['smi-request']);
+		fetch(requestParamURL, {
+			method: 'GET',
+			headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				}
+			}).then(r => r.json())
+			.then(r => {
+				fields = {...r};
+				setupRequestSocket();
+			})
+			.catch(e => {
+					console.error(e);
+					err.message = 'there\'s something screwy going on here... we can\'t get your request'
+			});
+    } else {
+        err.noFields = true;
+    }
+
+    // if the time display is still displaying a time in the future,
+    // set a timeout that changes it when the request becomes active
+    const msec = getDayMilliseconds();
+    const time_ms = fields.time * 60 * 1000;
+    if (msec > time_ms) {
+        isActive = true;
+    } else {
+        setTimeout(() => {
+            isActive = true;
+        }, time_ms - msec);
+    }
+
+
+    onMount(() => {
+
+        if (err.noFields) navigate('/new-request');
+
     })
 
     /*

@@ -221,8 +221,6 @@ exports.createSession = () => {
     const randomId = crypto.randomBytes(8).toString('base64').substring(0,8);
     const sessionId = `${targetSlot.toString(SLOT_RADIX)}-${randomId}`;
 
-	console.log(`hub slots: `, hub.slots);
-
     hub['slots'][targetSlot].sessions[sessionId] = {};
 
     // inc stats
