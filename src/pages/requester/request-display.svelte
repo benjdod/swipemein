@@ -31,8 +31,20 @@
     let fields = {};
     let cookies = getCookies();
     if (cookies['smi-request']) {
-        let r =  JSON.parse(decodeURIComponent (cookies['smi-request']));
-        fields = {...r};
+		const requestParamURL = '/api/data/request?score=' + parseInt(cookies['smi-request']);
+		fetch(requestParamURL, {
+			method: 'GET',
+			headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				}
+			}).then(r => r.json())
+			.then(r => {
+				fields = {...r};
+			})
+			.catch(e => {
+					console.error(e);
+					err.message = 'there\'s something screwy going on here... we can\'t get your request'
+			});
     } else {
         err.noFields = true;
     }
@@ -123,9 +135,10 @@
         navigate('/chat', {replace: true});
     }
 
+	/*
     setTimeout(() => {
         err.message = 'test error';
-    }, 1000)
+    }, 1000) */
 
 </script>
 

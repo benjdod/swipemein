@@ -91,8 +91,4 @@ exports.notifyOfAcceptedRequest = (requestUID, sessionId, score) => {
     return true;
 }
 
-exports.notifyOfCancelledRequest = () => {
-    
-}
-
 messageHub.initialize(2,2);

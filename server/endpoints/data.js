@@ -7,7 +7,7 @@ const log = require('ololog');
 
 const { notifyOfAcceptedRequest } = require('./rt-servers');
 const messageHub = require('./messagehub');
-const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest } = require('./requests-shell');
+const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest, getRequest } = require('./requests-shell');
 const { createControlMessage } = require('../../src/util/chat-message-format');
 
 const client = redis.createClient(6379);
@@ -39,7 +39,7 @@ router.post('/request', async (req,res) => {
         res.sendStatus(500);
     }
 
-    const payload = newReq[0];
+    const payload = newReq[1];
 
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
@@ -47,6 +47,23 @@ router.post('/request', async (req,res) => {
     res.cookie('smi-request', payload, {maxAge: msLeft, secure: true})
         .sendStatus(200);
 });
+
+router.get('/request', async (req, res) => {
+	try {
+		const request = await getRequest(parseInt(req.query.score));
+
+		if (Object.keys(request).length == 0) {
+			res.status(404).send(`no request with score of ${score} exists.`);
+		}
+
+		res.send(JSON.stringify(request));
+
+	} catch (e) {
+		console.error(e);
+		res.status(500).send(`could not get request.`);
+	}
+})
+
 router.delete('/request', (req,res) => {
 
     console.info(`deleting request ${req.body.uid}`);
@@ -84,6 +101,10 @@ router.post('/pend-request', async (req,res) => {
 
     const sessionId = messageHub.createSession();
 
+	// TODO: put a check here to make sure the provider 
+	// is actually a legit provider and not some trickster 
+	// looking to strike at the soft underbelly of this website
+
     if (notifyOfAcceptedRequest(req.body.uid, sessionId, req.body.score)) {
         await pendRequestByScore(req.body.score);
         res.cookie('smi-session-id', sessionId)
@@ -114,9 +135,9 @@ router.get('/requests', (req,res) => {
     // TODO: add params (skip, limit, sort) for infinite scrolling, filtering, etc
     getActiveRequests(0,20).then(requests => {
 
-        const real_requests = requests.map(r=>JSON.parse(r[0]));
+        //const real_requests = requests.map(r=>JSON.parse(r[0]));
 
-        res.set('Content-Type', 'application/json').send(real_requests);
+        res.set('Content-Type', 'application/json').send(requests);
     })
 })
 

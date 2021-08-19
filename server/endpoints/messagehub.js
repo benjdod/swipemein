@@ -221,6 +221,8 @@ exports.createSession = () => {
     const randomId = crypto.randomBytes(8).toString('base64').substring(0,8);
     const sessionId = `${targetSlot.toString(SLOT_RADIX)}-${randomId}`;
 
+	console.log(`hub slots: `, hub.slots);
+
     hub['slots'][targetSlot].sessions[sessionId] = {};
 
     // inc stats
@@ -298,7 +300,8 @@ exports.addParticipant = (participantSocket, sessionId) => {
             delete slot['sessions'][sessionId][key];
         }
 
-        if (Object.keys(slot['sessions'][sessionId]).length == 0) {
+		if (Object.keys(slot['sessions'][sessionId]).length == 0) {
+			console.log(`no more sockets in session, closing session ${sessionId}`)
             delete slot['sessions'][sessionId];
         }
     })

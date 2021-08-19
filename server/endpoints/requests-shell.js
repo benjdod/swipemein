@@ -10,32 +10,6 @@ const pendingRequestsPrefix = `requests:pending:`;
 
 const wipeSet = new Set();
 
-const addWipe = (request) => {
-    wipeSet.add(JSON.parse(request).uid);
-}
-
-const wipedRequests = (requests) => {
-    if (wipeSet.size == 0) return requests;
-
-    console.log('wiping request');
-    return requests.filter(r => {
-        r = JSON.parse(r[0]);
-        console.log(r);
-        return ! (wipeSet.has(r.uid));
-    });
-}
-
-const deleteWipes = async () => {
-    for (let r of wipeSet) { 
-        try {
-            await exports.deleteRequest(r);
-            wipeSet.delete(r);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-}
-
 // --- Utility funcs ----------------
 
 const parseScoredZRange = (range) => {
@@ -73,6 +47,31 @@ const getTimeBasedScore = () => {
     return 0 - parseInt(`${last_date_now}${str_score}`);
 }
 
+/**
+ * @description - Wipes an array of requests of requests that were deleted but 
+ * still in Redis for some reason.
+ * @param {Object[]} requests - an array of request objects
+ * @returns {Object[]} the original array filtered of any wiped objects 
+ */
+const wipedRequests = (requests) => {
+
+	if (wipeSet.size == 0) return requests;
+
+	return requests.filter(r => {
+		return ! (wipeSet.has(r.score));
+	})
+}
+
+const deleteWipes = async () => {
+	for (let score of wipeSet) {
+		try {
+			await exports.deleteRequest(score);
+			wipeSet.delete(score);
+		} catch (e) {
+			console.error(e);
+		}
+	}
+}
 
 //
 // --- Export funcs -------------------
@@ -92,7 +91,7 @@ exports.getActiveRequests = async (start, limit) => {
 
     try {
         const range = await zrangeSync(activeRequestsKey, _start, _start + _limit, 'WITHSCORES');
-        const parsedRange = parseScoredZRange(range);
+        const parsedRange = parseScoredZRange(range).map(ps => JSON.parse(ps[0]));
         return wipedRequests(parsedRange);
     } catch (e) {
         console.error(e);
@@ -131,6 +130,21 @@ exports.addRequest = async (request) => {
         payload,
         score
     ]
+}
+
+exports.getRequest = async (score) => {
+
+	if (typeof score !== 'number') {
+		throw Error('score must be a number!');
+	}
+
+    const zRangeByScoreSync = promisify(client.zrangebyscore).bind(client);
+	try {
+		const reqString = await zRangeByScoreSync(activeRequestsKey, score, score);
+		return JSON.parse(reqString);
+	} catch (e) {
+		console.error(e);
+	}
 }
 
 /**
@@ -191,17 +205,19 @@ exports.completeRequest = async (score) => {
 /**
  * @param {string | Object} request 
  */
-exports.deleteRequest = async (request) => {
+exports.deleteRequest = async (score) => {
 
     deleteWipes();
 
-    if (typeof request == 'object') request = deterministicStringify(request);
+	if (typeof score !== 'number') {
+		throw Error('score must be a number.')
+	}
 
-    zremSync = promisify(client.zrem).bind(client);
+    zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
     try {
-        wipeSet.add(request);
-        await zremSync(activeRequestsKey, request);
-        wipeSet.delete(request);
+        wipeSet.add(score);
+        await zRemRangeByScoreSync(activeRequestsKey, score, score);
+        wipeSet.delete(score);
     } catch (e) {
         console.error(e);
     }
@@ -218,10 +234,9 @@ exports.setClient = (newClient) => {
 }
 
 const test = async () => {
-    const pscore = await exports.addRequest({hello: 545, uid: '69af'});
-    await exports.addRequest({zingle: 19, uid: 'f7a9'});
-    await exports.deleteRequest({hello: 545, uid: '69af'});
-    const reqs = await exports.getActiveRequests();
-    console.log(reqs);
-    //await exports.unpendRequest(pscore[1]);
+	const ps = await exports.addRequest({helllo: 'moto'});
+	const score = ps[1];
+	console.log(score);
+	const req = await exports.getRequest(score);
+	console.log(req);
 }

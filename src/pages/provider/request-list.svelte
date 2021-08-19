@@ -11,14 +11,19 @@
 
     let listings = []  
 
-    fetch('/api/data/requests')
-        .then(r => r.json())
-        .then(r => {
-            listings = r;
-        })
-        .catch(e => {
-            console.error(e);
-        })
+	const fetchListings = () => {
+		fetch('/api/data/requests')
+			.then(r => r.json())
+			.then(r => {
+				listings = r;
+			})
+			.catch(e => {
+				console.error(e);
+			})
+	}
+
+	fetchListings();
+
 
 </script>
 
@@ -30,6 +35,7 @@
         {/each}
         {:else}
             <p>Looks like there are no requests right now!</p>
+			<button on:click={fetchListings}>Refresh</button><br>
             <a use:link href="/">Go home</a>
         {/if}
     </div>

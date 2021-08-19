@@ -13,8 +13,8 @@ module.exports = {
 	entry: {
 		'build/bundle': !prod ? [
 			'webpack-hot-middleware/client?path=/__webpack_hmr&timeout=20000',
-			'./src/main.js'
-		] : ['./src/main.js']
+			'./src/index.js'
+		] : ['./src/index.js']
 	},
 	resolve: {
 		alias: {
