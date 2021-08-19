@@ -159,7 +159,7 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                score: parseInt(getCookies()['smi-request-score']),
+                score: parseInt(getCookies()['smi-request']),
                 p: participantId,
                 sessionId: decodeURIComponent(getCookies()['smi-session-id'])
             })

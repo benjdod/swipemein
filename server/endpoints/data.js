@@ -25,15 +25,16 @@ router.post('/request', async (req,res) => {
     
     // note: uuid generation like this is very safe
     // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
-    const request_uid = crypto.randomBytes(16).toString('hex');
+    /*const request_uid = crypto.randomBytes(16).toString('hex');
     console.info(`creating request ${request_uid}`);
 
     const request_data = {...req.body, uid: request_uid}
+    */
 
     let newReq;
 
     try {
-        newReq = await addRequest(request_data);
+        newReq = await addRequest({...req.body});
     } catch (e) {
         console.error(e);
         res.sendStatus(500);
@@ -65,8 +66,6 @@ router.get('/request', async (req, res) => {
 })
 
 router.delete('/request', (req,res) => {
-
-    console.info(`deleting request ${req.body.uid}`);
 
     deleteRequest(req.body.score).then(() => {
         res.clearCookie('smi-request').sendStatus(200);
@@ -105,15 +104,27 @@ router.post('/pend-request', async (req,res) => {
 	// is actually a legit provider and not some trickster 
 	// looking to strike at the soft underbelly of this website
 
-    if (notifyOfAcceptedRequest(sessionId, req.body.score)) {
+    notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)
+    .then(() => pendRequestByScore(req.body.score))
+    .then(() => {
+        res.cookie('smi-session-id', sessionId)
+        .cookie('smi-request', req.body.score)
+        .sendStatus(200);
+    }).catch(e => {
+        console.error(e);
+        res.sendStatus(500);
+    })
+
+    /*
+    if (notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)) {
         await pendRequestByScore(req.body.score);
         res.cookie('smi-session-id', sessionId)
-            .cookie('smi-request-score', req.body.score)
+            .cookie('smi-request', req.body.score)
             .sendStatus(200);
     }
     else {
         res.sendStatus(500);
-    }
+    } */
 })
 
 router.post('/unpend-request', async (req, res) => {

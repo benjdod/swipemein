@@ -58,11 +58,11 @@ exports.bindWSServers = (expressServer) => {
         } else if (request.url.match(/^\/ws\/request/)) {
             requestServer.handleUpgrade(request, socket, head, socket => {
 
-                const req_uid = request.url.replace('/ws/request/', '');
+                const req_score = request.url.replace('/ws/request/', '');
 
-				console.log('rt server adding request socket: ', req_uid);
+				console.log('rt server adding request socket: ', req_score);
 
-                requestSockets[req_uid] = socket;
+                requestSockets[req_score] = socket;
                 requestServer.emit('connection', socket, request);
             });
         }
@@ -73,11 +73,12 @@ exports.bindWSServers = (expressServer) => {
  * Utility method for a provider endpoint to notify a requester that their request has been
  * accepted. This method notifies the requester, ensures the requester also agrees, and then creates a new session 
  * and distributes the session ID to both parties.
- * @param {string} sessionId
- * @param {number} score
- * @returns {boolean} whether or not the notification was accepted properly.
+ * @param {string} sessionId - id of the newly formed chat session
+ * @param {number} score - the score of the request being offered
+ * @param {string} name - the provider's name
+ * @returns {Promise<boolean>} whether or not the notification was accepted properly.
  */
-exports.notifyOfAcceptedRequest = ( sessionId, score) => {
+exports.notifyOfAcceptedRequest = async ( sessionId, score, name) => {
 
 	console.log('rt server looking for request socket: ', score);
     
@@ -88,10 +89,35 @@ exports.notifyOfAcceptedRequest = ( sessionId, score) => {
         type: 'accept',
         id: sessionId,
         score: score,
+        name: name,
     }
 
-    targetSocket.send(JSON.stringify(acceptObject));
-    return true;
+    const promise = new Promise((resolve, reject) => {
+        try {
+            targetSocket.on('message', (message) => {
+                if (message == 'ok') {
+                    resolve(true);
+                } else {
+                    reject(false);
+                }
+            })
+            targetSocket.send(JSON.stringify(acceptObject));
+        } catch (e) {
+            console.error(e);
+            reject(false);
+        } 
+    })
+
+    /*
+    try {
+        targetSocket.send(JSON.stringify(acceptObject));
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    } */
+
+    return promise;
 }
 
 messageHub.initialize(2,2);

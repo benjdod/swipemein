@@ -6,7 +6,7 @@
 <script>
 
     import { getCookies } from '../../util/doc-cookies'
-    import { dayMinutesToString, getDayMinutes, getDayMilliseconds } from '../../util/listtime'
+    import { dayMinutesToString, getDayMilliseconds } from '../../util/listtime'
     import { onMount } from 'svelte'
     import { navigate } from 'svelte-routing';
     import ConfirmDialog from "../../components/confirmpopdown.svelte"
@@ -14,7 +14,7 @@
 
     let isActive = false;
     let accepted = false;
-    let offerSessionId = '';
+    let offer = {};
 
     let err = {
         noFields: false,
@@ -27,6 +27,8 @@
         renew: false
     }
 
+    let ackOffer;
+
 	const setupRequestSocket = () => {
         const setNoConnection = () => {err.noConnection = true; err.message = 'You\'re not connected! Refresh to reconnect'}
 
@@ -38,6 +40,8 @@
 
                 if (data.type == 'accept') {
 
+                    console.log(data);
+
                     /* we know data is in the form of:
                         {
                             type: "accept",
@@ -46,11 +50,17 @@
                         }
                     */ 
 
+                    offer.id = data.id;
+                    offer.name = data.name;
                     accepted = true;    // shows accept offer dialog
-                    offerSessionId = data.id;
-                    document.cookie = `smi-request-score=${data.score}`;
+                    document.cookie = `smi-request=${data.score}`;
                 }
             }
+
+            ackOffer = () => {
+                ws.send('ok');
+            }
+
             ws.onerror = setNoConnection;
             ws.onclose = setNoConnection;
         } catch (e) {
@@ -131,12 +141,13 @@
 
     const acceptOffer = () => {
 
-        if (offerSessionId == '') {
+        if (offer.id == '') {
             console.error("no offer has been extended yet");
             return;
         }
 
-        document.cookie = `smi-session-id=${offerSessionId}`;
+        ackOffer();
+        document.cookie = `smi-session-id=${offer.id}`;
         navigate('/chat', {replace: true});
     }
 
@@ -176,7 +187,7 @@
             <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
         {/if}
         {#if accepted}
-            <ConfirmDialog confirm="Yes" deny="No" confirmaction={acceptOffer} denyaction={rejectOffer}>Someone has offered you a request, do you accept?</ConfirmDialog>
+            <ConfirmDialog confirm="Yes" deny="No" confirmaction={acceptOffer} denyaction={rejectOffer}>{offer.name} has offered you a request, do you accept?</ConfirmDialog>
         {/if}
         {#if err.noConnection || err.message.length > 0}
         <ModalPopup>{err.message}</ModalPopup>

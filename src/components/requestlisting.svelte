@@ -1,5 +1,6 @@
 <script>
 import { navigate } from "svelte-routing";
+import { getCookies } from "../util/doc-cookies";
 
 import { dayMinutesToString } from "../util/listtime";
 
@@ -7,19 +8,23 @@ import { dayMinutesToString } from "../util/listtime";
     export let name;
     export let classyear;
     export let message;
-    export let uid;
     export let score;
 
     classyear = classyear % 100;    // chops the last two decimal digits from the classyear (e.g. 2024 -> 24)
 
+    const providerInfo = JSON.parse(decodeURIComponent(getCookies()['smi-provider']))
+
     const acceptRequest = () => {
-        console.log(`attempting to offer to request ${uid} with score ${score}`);
+        console.log(`attempting to offer to request ${score}`);
         fetch('/api/data/pend-request', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({uid: uid, score: score})
+            body: JSON.stringify({
+                score: score,
+                name: providerInfo.name
+            })
         }).then(r => {
             //console.log("request offer succesfful");
             navigate('/chat', {replace: true});
@@ -31,7 +36,7 @@ import { dayMinutesToString } from "../util/listtime";
 
 </script>
 
-<div class="listing" id={`listing-${uid}`} on:click={acceptRequest}>
+<div class="listing" on:click={acceptRequest}>
     <h3><strong>{name} '{classyear}</strong> &middot; {dayMinutesToString(time, {militaryTime: false})}</h3> 
     <p>{message}</p>
 </div>

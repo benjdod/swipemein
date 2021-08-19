@@ -152,7 +152,7 @@ exports.getRequest = async (score) => {
  * @param {string | Object} request 
  * @param {number} score 
  * @returns {void}
- */
+ *
 exports.pendRequest = async (request, score) => {
 
     if (typeof request == 'object') {
@@ -170,14 +170,14 @@ exports.pendRequest = async (request, score) => {
     console.log(`removed ${nremoved} members from active requests`);
     await setSync(`requests:pending:${0-score}`, request);
     return;
-}
+} */
 
 exports.pendRequestByScore = async (score) => {
     const zrangebyscoreSync = promisify(client.zrangebyscore).bind(client);
     const setSync = promisify(client.set).bind(client);
     const zremrangebyscoreSync = promisify(client.zremrangebyscore).bind(client);
     const request = await zrangebyscoreSync(activeRequestsKey, score, score);
-    const nremoved=await zremrangebyscoreSync(activeRequestsKey, score, score);
+    await zremrangebyscoreSync(activeRequestsKey, score, score);
     await setSync(`requests:pending:${0-score}`, request);
 }
 
