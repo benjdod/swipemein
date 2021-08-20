@@ -23,8 +23,8 @@
     }
 
     let mycoords = {
-        lat: 34.663569,
-        lng: -77.062709
+        lat: 35.913122,
+        lng: -79.055740
     }
 
     const languageFilter = new BadWords();
@@ -70,11 +70,22 @@
                 ws.send('hello');
             }
 
+				const sendCurrentCoords = (pos) => {
+						const coords = pos.coords;
+						ws.send(createGeoMessage(participantId, coords.latitude, coords.longitude));
+					}
+
+				const id = navigator.geolocation.watchPosition(sendCurrentCoords, (err) => console.error(err), {
+						enableHighAccuracy: true,
+						maximumAge: 0,
+						timeout: 10000
+					});
+				/*
             geoInterval = setInterval(() => {
                 ws.send(createGeoMessage(participantId, mycoords.lat, mycoords.lng));
                 mycoords.lat += 0.005;
                 mycoords.lng += 0.007;
-            }, 2000);
+            }, 2000); */
         }
 
         const handleMessage = ({data}) => { 
@@ -166,7 +177,7 @@
         }).then(r => {
             clearInterval(geoInterval);
             closeWebSocket();
-            const to = hasCookie('smi-request') ? '/active-request' : '/requests'
+            const to = hasCookie('smi-provider') ? '/requests' : '/active-request'
             navigate(to, {
                 replace: true
             })

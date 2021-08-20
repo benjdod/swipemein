@@ -13,7 +13,6 @@
 
     // important constants
     const message_maxlength = 120;
-    const time_roundfactor = 5;
 
     let formError = {
         hasError: false,
@@ -34,7 +33,7 @@
     // populate the fields objects which is bound to the form
     let now = new Date(Date.now());
     let hours = now.getHours();
-    let minutes = Math.round(Math.ceil(now.getMinutes() / time_roundfactor) * time_roundfactor);
+	let minutes = now.getMinutes();
     if (minutes >= 60) minutes = 0;
 
 
@@ -157,6 +156,7 @@
 </main>
 
 <style>
+
 .fullwidth {
     padding: 5% 10%;
     width: 100%;
