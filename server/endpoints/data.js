@@ -40,12 +40,14 @@ router.post('/request', async (req,res) => {
         res.sendStatus(500);
     }
 
-    const payload = newReq[1];
+	const key = newReq[0];
+    const score = newReq[1];
 
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', payload, {maxAge: msLeft, secure: true})
+    res.cookie('smi-request', score, {maxAge: msLeft, secure: true})
+		.cookie('smi-request-key', key, {maxAge: msLeft, secure: true})
         .sendStatus(200);
 });
 
@@ -67,8 +69,8 @@ router.get('/request', async (req, res) => {
 
 router.delete('/request', (req,res) => {
 
-    deleteRequest(req.body.score).then(() => {
-        res.clearCookie('smi-request').sendStatus(200);
+    deleteRequest(req.body.key, req.body.score).then(() => {
+        res.clearCookie('smi-request').clearCookie('smi-request-key').sendStatus(200);
     }).catch(e => {
         console.error(e);
         res.status(500).send('could not delete request due to a server error');

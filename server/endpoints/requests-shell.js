@@ -1,4 +1,5 @@
 const redis = require('redis');
+const crypto = require('crypto');
 
 let client = redis.createClient(6379);
 
@@ -102,12 +103,13 @@ exports.getActiveRequests = async (start, limit) => {
 /**
  * Adds a request to the active requests. 
  * @param {Object} request the request object 
- * @returns an array containing - 1) the payload string, 2) the score of the request
+ * @returns an array containing - 1) the request access key, 2) the score of the request
  * @throws Error if the request is not an object, which is necessary for serialization
  */
 exports.addRequest = async (request) => {
 
     const zAddSync = promisify(client.zadd).bind(client);
+	const setSync = promisify(client.set).bind(client);
 
     let payload = '';
 
@@ -119,7 +121,10 @@ exports.addRequest = async (request) => {
         throw Error('Request argument is not an object');
     }
 
+	const accessKey = crypto.randomBytes(12).toString('hex');
+
     try {
+		await setSync(`request:key:${accessKey}`, `${score}`);
         await zAddSync(activeRequestsKey, score, payload);
     } catch (e) {
         console.error(e);
@@ -127,7 +132,7 @@ exports.addRequest = async (request) => {
     }
 
     return [
-        payload,
+		accessKey,
         score
     ]
 }
@@ -205,7 +210,7 @@ exports.completeRequest = async (score) => {
 /**
  * @param {string | Object} request 
  */
-exports.deleteRequest = async (score) => {
+exports.deleteRequest = async (key, score) => {
 
     deleteWipes();
 
@@ -213,11 +218,23 @@ exports.deleteRequest = async (score) => {
 		throw Error('score must be a number.')
 	}
 
+	getSync = promisify(client.get).bind(client);
+
+	try {
+		let s = await getSync(`request:key:${key}`);
+		s = parseInt(s);
+		if (s !== score) throw Error('keys aren\'t equal...');
+	} catch (e) {
+		throw Error('invalid key');
+	}
+
+
     zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
+	delSync = promisify(client.del).bind(client);
     try {
         wipeSet.add(score);
-		throw Error('a wrench in the system!')
         await zRemRangeByScoreSync(activeRequestsKey, score, score);
+		await delSync(`request:key:${key}`);
         wipeSet.delete(score);
     } catch (e) {
         console.error(e);

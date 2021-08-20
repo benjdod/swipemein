@@ -125,13 +125,18 @@
                 'Content-Type': 'application/json'
             },
             method: 'DELETE',
-            body: JSON.stringify(fields)
+				body: JSON.stringify({...fields, key: getCookies()['smi-request-key']})
         }).then(res => {
-            navigate('/');
+			console.log(res);
+			if (res.status != 200) {
+				err.message = 'could not delete request!';
+			} else {
+				navigate('/');
+			}
         }).catch(e => {
             console.error(e);
 
-            e.message = 'could not delete request!'
+            err.message = 'could not delete request!'
         })
     }
 

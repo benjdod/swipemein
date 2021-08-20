@@ -87,19 +87,21 @@ const deleteRequest = () => {
                 </ModalPopup>
             {/if}
 
-            <form id="provider-form">
-                <h2>What's your name?</h2>
-                <input type="text" bind:value={fields.name}>
-                <br>
-            </form>
+			<div class="card centered-card">
+				<form id="provider-form">
+					<h2>What's your name?</h2>
+					<input type="text" bind:value={fields.name}>
+					<br>
+				</form>
 
-            {#if formError.hasError}
-                <p>{formError.message}</p>
-            {/if}
+				{#if formError.hasError}
+					<p>{formError.message}</p>
+				{/if}
 
-            <button class="submitform" on:click={submitForm}>Submit</button>
-            <br>
-            <a use:link href="/">&LeftArrow; Back home</a>
+				<button class="submitform" on:click={submitForm}>Submit</button>
+				<br>
+				<a use:link href="/">&LeftArrow; Back home</a>
+			</div>
         </div>
     </div>
     
@@ -108,8 +110,17 @@ const deleteRequest = () => {
 <style>
 
     div.frame {
-        margin: 10px ;
+        margin: 0 auto;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		resize: both;
     }
+
+	.centered-card {
+		resize: both;
+		text-align: center;
+	}
 
 @media only screen and (min-width: 600px) {
     div.frame {

@@ -7,7 +7,19 @@
     import Requestlisting from "../../components/requestlisting.svelte";
     import "../../util/listtime"
 
-    import { link } from "svelte-routing"
+	import { onMount } from 'svelte'
+
+    import { link, navigate } from "svelte-routing"
+
+	import { getCookies } from "../../util/doc-cookies"
+
+	onMount(() => {
+		if (! (getCookies()['smi-provider'])) {
+			navigate('/new-provider', {replace: true});
+		}
+
+	})
+
 
     let listings = []  
 
