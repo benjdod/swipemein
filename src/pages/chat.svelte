@@ -177,7 +177,7 @@
         }).then(r => {
             clearInterval(geoInterval);
             closeWebSocket();
-            const to = hasCookie('smi-provider') ? '/requests' : '/active-request'
+            const to = hasCookie('smi-request-key') ? '/active-request' : '/requests'
             navigate(to, {
                 replace: true
             })

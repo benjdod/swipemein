@@ -62,6 +62,11 @@ exports.bindWSServers = (expressServer) => {
 
 				console.log('rt server adding request socket: ', req_score);
 
+				socket.on('close', () => {
+					console.log(`deleting request socket ${req_score}`);
+					delete requestSockets[req_score];
+				})
+
                 requestSockets[req_score] = socket;
                 requestServer.emit('connection', socket, request);
             });

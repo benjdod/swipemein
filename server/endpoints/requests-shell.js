@@ -1,7 +1,10 @@
 const redis = require('redis');
 const crypto = require('crypto');
 
-let client = redis.createClient(6379);
+
+let redisUrl = process.env['REDIS_URL'] || `redis://localhost:6379`
+
+let client = redis.createClient(redisUrl)
 
 const { promisify } = require('util');
 const deterministicStringify = require('json-stringify-deterministic');
@@ -109,6 +112,7 @@ exports.getActiveRequests = async (start, limit) => {
 exports.addRequest = async (request) => {
 
     const zAddSync = promisify(client.zadd).bind(client);
+	const hsetSync = promisify(client.hset).bind(client);
 	const setSync = promisify(client.set).bind(client);
 
     let payload = '';
@@ -124,7 +128,8 @@ exports.addRequest = async (request) => {
 	const accessKey = crypto.randomBytes(12).toString('hex');
 
     try {
-		await setSync(`request:key:${accessKey}`, `${score}`);
+		await hsetSync(`requests:keys`, accessKey, score.toString());;
+		// await setSync(`request:key:${accessKey}`, `${score}`);
         await zAddSync(activeRequestsKey, score, payload);
     } catch (e) {
         console.error(e);
@@ -218,10 +223,11 @@ exports.deleteRequest = async (key, score) => {
 		throw Error('score must be a number.')
 	}
 
-	getSync = promisify(client.get).bind(client);
+	// getSync = promisify(client.get).bind(client);
+	const hgetSync = promisify(client.hget).bind(client);
 
 	try {
-		let s = await getSync(`request:key:${key}`);
+		let s = await hgetSync(`requests:keys`, `${key}`);
 		s = parseInt(s);
 		if (s !== score) throw Error('keys aren\'t equal...');
 	} catch (e) {
@@ -231,10 +237,11 @@ exports.deleteRequest = async (key, score) => {
 
     zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
 	delSync = promisify(client.del).bind(client);
+	hdelSync = promisify(client.hdel).bind(client);
     try {
         wipeSet.add(score);
         await zRemRangeByScoreSync(activeRequestsKey, score, score);
-		await delSync(`request:key:${key}`);
+		await delSync(`requests:keys`, key);
         wipeSet.delete(score);
     } catch (e) {
         console.error(e);
