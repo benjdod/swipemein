@@ -151,6 +151,9 @@ exports.getRequest = async (score) => {
     const zRangeByScoreSync = promisify(client.zrangebyscore).bind(client);
 	try {
 		const reqString = await zRangeByScoreSync(activeRequestsKey, score, score);
+		if (reqString.length == 0) {
+			throw Error('active request not found');
+		}
 		return JSON.parse(reqString);
 	} catch (e) {
 		console.error(e);

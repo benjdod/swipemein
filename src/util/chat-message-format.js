@@ -1,7 +1,3 @@
-const PTC_CTRL = 0x0;
-const PTC_TXT = 0x1;
-const PTC_GEO = 0x2;
-
 const ptc = {
     CTRL: {
         str: 'CTRL',

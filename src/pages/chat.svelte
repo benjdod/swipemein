@@ -9,6 +9,8 @@
     import { link } from "svelte-routing"
     import Chatmap from "../components/chatmap.svelte";
 
+	console.log('hello')
+
     let client_message = ''
 
     let sendMessage = () => {}
@@ -18,13 +20,14 @@
     let participantId = '0';
 
     let coords = {
-        lat: 0,
-        lng: 0
+		lat: 35.910534,
+		lng: -79.048764
     }
 
     let mycoords = {
-        lat: 35.913122,
-        lng: -79.055740
+		latitude: 35.910534,
+		longitude: -79.048764
+
     }
 
     const languageFilter = new BadWords();
@@ -52,6 +55,8 @@
             throw Error(err);
         }
 
+
+
         // using chat protocol v0.1
         const ws = new WebSocket(`ws://localhost:8080/ws/chat/${decodeURIComponent(cookies['smi-session-id'])}`, `chat.smi.com`);
 
@@ -71,8 +76,12 @@
             }
 
 				const sendCurrentCoords = (pos) => {
-						const coords = pos.coords;
-						ws.send(createGeoMessage(participantId, coords.latitude, coords.longitude));
+
+						if (mycoords.latitude != pos.coords.latitude || mycoords.longitude != pos.coords.longitude) {
+							mycoords.latitude = pos.coords.latitude;
+							mycoords.longitude = pos.coords.longitude;
+							ws.send(createGeoMessage(participantId, mycoords.latitude, mycoords.longitude));
+						}
 					}
 
 				const id = navigator.geolocation.watchPosition(sendCurrentCoords, (err) => console.error(err), {
@@ -100,8 +109,8 @@
             }
             
             const message = parseMessage(data);
-            console.log(message);
-            console.log(data);
+            console.log(`received message: `, message);
+            // console.log(data);
 
             if (message.type == ptc.CTRL.str) {
                 if (message.body == 'CANCEL') {
@@ -113,6 +122,9 @@
                     } catch (e) {}
 
                     closeWebSocket();
+					document.cookie = "smi-session-id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+					document.cookie = "smi-participant-id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
                     const to = hasCookie('smi-request') ? '/active-request' : '/requests'
 
                     setTimeout(() => {
@@ -123,6 +135,7 @@
                 chat_messages = [...chat_messages, message];
             } else if (message.type == ptc.GEO.str) {
                 coords = message.body;
+				coords.latitude = message.body.latitude;
             }
         }
 
@@ -160,6 +173,7 @@
     try {
         initChatSession();
     } catch (e) {
+		console.error(e);
         setErrorState(e);
     }
 
@@ -191,6 +205,8 @@
         console.error(message);
     }
 
+	const completePendingRequest = () => {}
+
     
 </script>
 
@@ -200,6 +216,7 @@
         <div>
             <a use:link href="/">Home</a>
             <button on:click={cancelPendingRequest}>Cancel</button>
+			<button on:click={completePendingRequest}>Complete</button>
         </div>
         <MessageView messages={chat_messages} selfId={participantId}/>
         <ChatComposer bind:value={client_message} sendMessage={sendMessage}/>        

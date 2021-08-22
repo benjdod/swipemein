@@ -70,9 +70,11 @@
 
 	}
 
+	const inChatState = getCookies()['smi-participant-id'] != undefined;
+
     let fields = {};
     let cookies = getCookies();
-    if (cookies['smi-request']) {
+    if (cookies['smi-request'] && ! inChatState) {
 		const requestParamURL = '/api/data/request?score=' + parseInt(cookies['smi-request']);
 		fetch(requestParamURL, {
 			method: 'GET',
@@ -106,8 +108,9 @@
 
 
     onMount(() => {
-
         if (err.noFields) navigate('/new-request');
+
+		if (inChatState) navigate('/chat', {replace: true});
 
     })
 

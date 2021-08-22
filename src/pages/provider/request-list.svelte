@@ -18,6 +18,10 @@
 			navigate('/new-provider', {replace: true});
 		}
 
+		if (getCookies()['smi-participant-id']) {
+			navigate('/chat', {replace: true});
+		}
+
 	})
 
 

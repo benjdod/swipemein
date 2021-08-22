@@ -46,8 +46,8 @@ router.post('/request', async (req,res) => {
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', score, {maxAge: msLeft, secure: true})
-		.cookie('smi-request-key', key, {maxAge: msLeft, secure: true})
+    res.cookie('smi-request', score, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+		.cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
         .sendStatus(200);
 });
 
@@ -135,7 +135,9 @@ router.post('/unpend-request', async (req, res) => {
         messageHub.sendMessage(req.body.sessionId, createControlMessage(req.body.p, 'CANCEL'));
     })
     .then(() => {
-        res.sendStatus(200);
+        res.clearCookie('smi-participant-id')
+			.clearCookie('smi-session-id')
+			.sendStatus(200);
     })
     .catch(e => {
         console.error(e);
