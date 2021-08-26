@@ -14,6 +14,13 @@ const pendingRequestsPrefix = `requests:pending:`;
 
 const wipeSet = new Set();
 
+class RedisError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'RedisError';
+    }
+}
+
 // --- Utility funcs ----------------
 
 const parseScoredZRange = (range) => {
@@ -113,7 +120,6 @@ exports.addRequest = async (request) => {
 
     const zAddSync = promisify(client.zadd).bind(client);
 	const hsetSync = promisify(client.hset).bind(client);
-	const setSync = promisify(client.set).bind(client);
 
     let payload = '';
 
@@ -127,10 +133,18 @@ exports.addRequest = async (request) => {
 
 	const accessKey = crypto.randomBytes(12).toString('hex');
 
+    const transaction = new Promise((resolve, reject) => {
+        client.multi()
+            .hset(`requests:keys`, accessKey, score.toString())
+            .zadd(activeRequestsKey, score, payload)
+            .exec((err, replies) => {
+                if (err) reject(err);
+                resolve();
+            })
+    })
+
     try {
-		await hsetSync(`requests:keys`, accessKey, score.toString());;
-		// await setSync(`request:key:${accessKey}`, `${score}`);
-        await zAddSync(activeRequestsKey, score, payload);
+		await transaction;
     } catch (e) {
         console.error(e);
         return ['', -1]
@@ -185,13 +199,46 @@ exports.pendRequest = async (request, score) => {
     return;
 } */
 
+exports.getProvider = async (uid) => {
+    const getSync = promisify(client.get).bind(client);
+    const providerString = await getSync(`prv:${uid}`);
+    return providerString ? JSON.parse(providerString) : null;
+}
+
 exports.pendRequestByScore = async (score) => {
     const zrangebyscoreSync = promisify(client.zrangebyscore).bind(client);
-    const setSync = promisify(client.set).bind(client);
-    const zremrangebyscoreSync = promisify(client.zremrangebyscore).bind(client);
-    const request = await zrangebyscoreSync(activeRequestsKey, score, score);
-    await zremrangebyscoreSync(activeRequestsKey, score, score);
-    await setSync(`requests:pending:${0-score}`, request);
+
+    const transaction = new Promise((resolve, reject) => {
+
+        const transactionError = new RedisError('could not pend request due to a Redis error')
+
+        let request;
+
+        try {
+            //request = await zrangebyscoreSync(activeRequestsKey, score, score);
+        } catch (e) {
+            throw redisError;
+        }
+
+        client.zrangebyscore(activeRequestsKey, score, score, (err, request) => {
+
+            if (err) reject(transactionError);
+
+            client.multi()
+            .zremrangebyscore(activeRequestsKey, score, score)
+            .set(`requests:pending:${0-score}`, request)
+            .exec((err, replies) => {
+                if (err) {
+                    reject(transactionError)
+                } else {
+                    resolve();
+                }
+            })
+        })
+        
+    })
+
+    await transaction;
 }
 
 /**
@@ -199,20 +246,49 @@ exports.pendRequestByScore = async (score) => {
  * @param {number} score 
  */
 exports.unpendRequest = async (score) => {
+
+    /*
     const getSync = promisify(client.get).bind(client);
 
     const request = await getSync(`requests:pending:${0-score}`);
     client.zadd(activeRequestsKey, score, request);
-    client.del(`requests:pending:${0-score}`);
-    console.log('unpended request');
+    client.del(`requests:pending:${0-score}`);*/
+
+    const transactionError = new RedisError('could not unpend request due to a transaction error');
+
+    const transaction = new Promise((resolve, reject) => {
+        client.get(`requests:pending:${0-score}`, (err, request) => {
+
+            if (err) reject(transactionError);
+
+            client.multi()
+                .zadd(activeRequestsKey, score, request)
+                .del(`requests:pending:${0-score}`)
+                .exec((err, replies) => {
+                    if (err) reject(transactionError)
+                    resolve()
+                })
+        })
+    })
+
+    await transaction;
 }
 
 /**
  * @param {number} score 
  */
 exports.completeRequest = async (score) => {
-    const renameSync = promisify(client.get).bind(client);
-    await renameSync(`requests:pending:${0-score}`, `requests:complete:${0-score}`);
+    //const renameSync = promisify(client.get).bind(client);
+    //await renameSync(`requests:pending:${0-score}`, `requests:complete:${0-score}`);
+
+    const transaction = new Promise((resolve, reject) => {
+        client.rename(`requests:pending:${0-score}`, `requests:complete:${0-score}`, (err, reply) => {
+            if (err) reject (new RedisError('could not complete request due to a transaction error'));
+            resolve()
+        })
+    })
+
+    await transaction;
 }
 
 /**
@@ -220,35 +296,41 @@ exports.completeRequest = async (score) => {
  */
 exports.deleteRequest = async (key, score) => {
 
+    const transactionError = new RedisError('could not delete request due to a transaction error');
+
     deleteWipes();
 
 	if (typeof score !== 'number') {
 		throw Error('score must be a number.')
 	}
 
-	// getSync = promisify(client.get).bind(client);
 	const hgetSync = promisify(client.hget).bind(client);
 
-	try {
-		let s = await hgetSync(`requests:keys`, `${key}`);
-		s = parseInt(s);
-		if (s !== score) throw Error('keys aren\'t equal...');
-	} catch (e) {
-		throw Error('invalid key');
-	}
-
-
-    zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
-	delSync = promisify(client.del).bind(client);
-	hdelSync = promisify(client.hdel).bind(client);
+    let s;
     try {
+        s = await hgetSync(`requests:keys`, `${key}`);
+    } catch (e) {throw transactionError}
+
+    s = parseInt(s);
+    if (s !== score) throw Error('invalid key');
+
+    /* zRemRangeByScoreSync = promisify(client.zremrangebyscore).bind(client);
+	delSync = promisify(client.del).bind(client);
+	hdelSync = promisify(client.hdel).bind(client); */
+
+    const transaction = new Promise((resolve, reject) => {
         wipeSet.add(score);
-        await zRemRangeByScoreSync(activeRequestsKey, score, score);
-		await delSync(`requests:keys`, key);
-        wipeSet.delete(score);
-    } catch (e) {
-        console.error(e);
-    }
+        client.multi()
+            .zremrangebyscore(activeRequestsKey, score, score)
+            .del(`requests:keys`, key)
+            .exec((err, replies) => {
+                if (err) reject(transactionError);
+                wipeSet.delete(score);
+                resolve();
+            })
+    })
+
+    await transaction;
 }
 
 exports.setClient = (newClient) => {
@@ -259,12 +341,4 @@ exports.setClient = (newClient) => {
 
     client = newClient;
     return true;
-}
-
-const test = async () => {
-	const ps = await exports.addRequest({helllo: 'moto'});
-	const score = ps[1];
-	console.log(score);
-	const req = await exports.getRequest(score);
-	console.log(req);
 }

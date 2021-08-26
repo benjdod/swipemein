@@ -7,28 +7,24 @@
     import BadWords from "bad-words"
     import { navigate } from "svelte-routing";
     import { link } from "svelte-routing"
-    import Chatmap from "../components/chatmap.svelte";
+    import Chatmap from "../components/chat/chatmap.svelte";
 
 	console.log('hello')
 
-    let client_message = ''
-
+    let composer_value = ''
     let sendMessage = () => {}
-
     let chat_messages = []
-
     let participantId = '0';
-
+    let errorMessage = '';
     let coords = {
 		lat: 35.910534,
 		lng: -79.048764
-    }
-
+    };
     let mycoords = {
 		latitude: 35.910534,
 		longitude: -79.048764
-
-    }
+    };
+    let geoInterval;
 
     const languageFilter = new BadWords();
     languageFilter.removeWords(
@@ -38,7 +34,6 @@
         'screw'
     );
 
-    let geoInterval;
 
     let closeWebSocket = () => {};
 
@@ -76,11 +71,11 @@
             }
 
 				const sendCurrentCoords = (pos) => {
-
 						if (mycoords.latitude != pos.coords.latitude || mycoords.longitude != pos.coords.longitude) {
 							mycoords.latitude = pos.coords.latitude;
 							mycoords.longitude = pos.coords.longitude;
-							ws.send(createGeoMessage(participantId, mycoords.latitude, mycoords.longitude));
+                            if (ws.readyState == ws.OPEN)
+                                ws.send(createGeoMessage(participantId, mycoords.latitude, mycoords.longitude));
 						}
 					}
 
@@ -140,29 +135,27 @@
         }
 
         ws.onmessage = handleMessage;
-        
-        /*ws.removeEventListener('message',getParticipantId);
-        ws.onmessage = ({data}) => {
-            // get participant ID, then set to PushNewMessage
-            console.log(`new message: `, data);
-        }*/
+
+        ws.onclose = () => {setErrorState('you are not connected to the chat server!')}
 
         sendMessage = () => {
-            if (client_message != '') {
-                if (languageFilter.isProfane(client_message)) {
-                    client_message = languageFilter.clean(client_message);
+            if (composer_value != '') {
+                if (languageFilter.isProfane(composer_value)) {
+                    composer_value = languageFilter.clean(composer_value);
                     return;
                 } 
 
-                const newMessage = createTextualMessage(participantId, client_message);
+                const newMessage = createTextualMessage(participantId, composer_value);
 
                 try {
                     ws.send(newMessage);
                     chat_messages = [...chat_messages, parseMessage(newMessage)];
-                    client_message = '';
+                    composer_value = '';
                 } catch (e) {
-                    setErrorState(e);
-                    alert('there was an error while sending your message!');
+                    if (ws.readyState != ws.OPEN)
+                        setErrorState('you are not connected to the chat server!')
+                    else 
+                        setErrorState('could not send your message');
                 }
             }
         }
@@ -173,7 +166,6 @@
     try {
         initChatSession();
     } catch (e) {
-		console.error(e);
         setErrorState(e);
     }
 
@@ -189,6 +181,9 @@
                 sessionId: decodeURIComponent(getCookies()['smi-session-id'])
             })
         }).then(r => {
+
+            if (r.status != 200) throw Error('bad response from server');
+
             clearInterval(geoInterval);
             closeWebSocket();
             const to = hasCookie('smi-request-key') ? '/active-request' : '/requests'
@@ -198,11 +193,10 @@
         }).catch(e => {
             setErrorState('could not unpend request!');
         })
-        
     }
 
     const setErrorState = (message) => {
-        console.error(message);
+        errorMessage = message;
     }
 
 	const completePendingRequest = () => {}
@@ -210,18 +204,24 @@
     
 </script>
 
-<main>
+<div>
     <div style="overflow: hidden;">
-        <Chatmap height={300} latitude={coords.lat} longitude={coords.lng}/>
+        <Chatmap height={300} coords={[coords.lat, coords.lng]}/>
         <div>
             <a use:link href="/">Home</a>
             <button on:click={cancelPendingRequest}>Cancel</button>
 			<button on:click={completePendingRequest}>Complete</button>
+            {#if errorMessage.length > 0}
+                <div style="color: #e55; background-color: #ddd;">
+                    <h4>Error!</h4>
+                    <p >{errorMessage}</p>
+                </div>
+            {/if}
         </div>
         <MessageView messages={chat_messages} selfId={participantId}/>
-        <ChatComposer bind:value={client_message} sendMessage={sendMessage}/>        
+        <ChatComposer bind:value={composer_value} sendMessage={sendMessage}/>        
     </div>
-</main>
+</div>
 
 <style>
 

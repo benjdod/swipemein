@@ -23,7 +23,8 @@ import { dayMinutesToString } from "../util/listtime";
             },
             body: JSON.stringify({
                 score: score,
-                name: providerInfo.name
+                name: providerInfo.name,
+                uid: providerInfo.uid,
             })
         }).then(r => {
             //console.log("request offer succesfful");

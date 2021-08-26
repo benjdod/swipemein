@@ -232,10 +232,25 @@ exports.createSession = () => {
     return sessionId;
 }
 
+exports.hasSession = (sessionId) => {
+    let slotNumber = validateSessionId(sessionId);
+
+    if (slotNumber == -2) {
+        console.error(`could not add participant to session ${sessionId} - malformed session ID`);
+        return false;
+    } else if (slotNumber == -1) {
+        console.error(`could not add participant to session ${sessionId} - session does not exist`);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * Adds a participant socket to a session.
  * @param {WebSocket} participantSocket
  * @param {string} sessionId 
+ * @returns {boolean} whether the participant was successfully added to a session
  */
 exports.addParticipant = (participantSocket, sessionId) => {
 
@@ -243,10 +258,10 @@ exports.addParticipant = (participantSocket, sessionId) => {
 
     if (slotNumber == -2) {
         console.error(`could not add participant to session ${sessionId} - malformed session ID`);
-        return;
+        return false;
     } else if (slotNumber == -1) {
         console.error(`could not add participant to session ${sessionId} - session does not exist`);
-        return;
+        return false;
     }
 
     const slot = hub['slots'][slotNumber];
@@ -305,7 +320,7 @@ exports.addParticipant = (participantSocket, sessionId) => {
     })
 
     console.log(`added a participant to session ${sessionId}.`);
-    //console.log(`participants: `, slot['sessions'][sessionId]);
+    return true;
 }
 
 /**

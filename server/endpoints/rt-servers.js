@@ -1,8 +1,4 @@
 const ws = require('ws');
-const redis = require('redis');
-const url = require('url');
-const crypto = require('crypto');
-
 const messageHub = require('./messagehub.js');
 
 let requestSockets = {};
@@ -13,7 +9,10 @@ chatServer.on('connection', (socket, request) => {
     console.log("chat server request url: ", request.url);
 
     const sessionFull = request.url.replace('/ws/chat/', '');
-    messageHub.addParticipant(socket, sessionFull);
+    if (! messageHub.addParticipant(socket, sessionFull)) {
+        console.log(`could not add participant to session ${sessionFull}`)
+        socket.close();
+    }
 
     // add event listener to get session ID
     // once it's obtained, remove event listener and

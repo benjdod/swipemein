@@ -27,6 +27,8 @@
 
     let listings = []  
 
+	let errorMessage = 'Looks like there are no requests right now!';
+
 	const fetchListings = () => {
 		fetch('/api/data/requests')
 			.then(r => r.json())
@@ -35,6 +37,7 @@
 			})
 			.catch(e => {
 				console.error(e);
+				errorMessage = 'Could not load requests'
 			})
 	}
 
@@ -50,7 +53,7 @@
             <Requestlisting {...listing}></Requestlisting>
         {/each}
         {:else}
-            <p>Looks like there are no requests right now!</p>
+            <p>{errorMessage}</p>
 			<button on:click={fetchListings}>Refresh</button><br>
             <a use:link href="/">Go home</a>
         {/if}

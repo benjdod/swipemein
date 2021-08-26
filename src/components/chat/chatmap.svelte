@@ -1,7 +1,7 @@
 <script>
 
     import * as L from "leaflet"
-    import * as HomeIcon from "../util/homeicon" 
+    import * as HomeIcon from "../../util/homeicon" 
 
     import "leaflet/dist/leaflet.css"
 
@@ -37,11 +37,28 @@
         }
     }
 
-    export let height;
-    export let latitude;
-    export let longitude;
+    /**
+     * 
+     * @param {Array[]} coords - array of lat lon coord sets
+     */
+    const calculateCoordsCenter = (coords) => {
+        const n = coords.length;
+        let latsum = 0, lonsum = 0;
+        coords.forEach(c => {
+            latsum += c[0];
+            lonsum += c[1];
+        })
+        latsum /= n; lonsum /= n;
+        return [latsum, lonsum];
+    }
 
-    $: handleLatLng([latitude, longitude])
+    export let height;
+    // export let latitude;
+    // export let longitude;
+
+    export let coords;
+
+    $: handleLatLng(calculateCoordsCenter(coords))
     
 </script>
 

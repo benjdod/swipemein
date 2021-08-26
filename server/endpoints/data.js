@@ -7,7 +7,7 @@ const log = require('ololog');
 
 const { notifyOfAcceptedRequest } = require('./rt-servers');
 const messageHub = require('./messagehub');
-const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest, getRequest } = require('./requests-shell');
+const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest, getRequest, getProvider } = require('./requests-shell');
 const { createControlMessage } = require('../../src/util/chat-message-format');
 
 const client = redis.createClient(6379);
@@ -40,8 +40,8 @@ router.post('/request', async (req,res) => {
         res.sendStatus(500);
     }
 
-	const key = newReq[0];
-    const score = newReq[1];
+	//let key, score;
+    const [key, score] = newReq;
 
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
@@ -102,9 +102,11 @@ router.post('/pend-request', async (req,res) => {
 
     const sessionId = messageHub.createSession();
 
-	// TODO: put a check here to make sure the provider 
-	// is actually a legit provider and not some trickster 
-	// looking to strike at the soft underbelly of this website
+    const provider = await getProvider(req.body.uid);
+
+    if (provider == null) {
+        res.status(401).send(`Invalid credentials. Please provide a valid 'uid' field in the request body.`)
+    }
 
     notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)
     .then(() => pendRequestByScore(req.body.score))
@@ -153,6 +155,9 @@ router.get('/requests', (req,res) => {
         //const real_requests = requests.map(r=>JSON.parse(r[0]));
 
         res.set('Content-Type', 'application/json').send(requests);
+    }).catch(e => {
+        console.error(e);
+        res.status(500).send('could not fetch requests');
     })
 })
 

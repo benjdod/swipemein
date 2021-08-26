@@ -38,17 +38,36 @@ const doAsync = async () => {
 }
 
 const inc = () => {
-    client.set('test:k', '0');
-    client.multi()
-        .incr('test:k')
-        .incr('test:k')
-        .incr('test:k')
-        .exec();
-    client.get('test:k', (e, val) => {
-        console.log(val);
-    })
+    client.get('hello', (e, s) => {
+        console.log(s);
+    });
 }
 
-inc();
+const multiExec = async () => {
+    const p = new Promise((resolve, reject) => {
+        client.multi()
+        .set('hello', 'there')
+        .get('hello')
+        .set('hello', 'sing')
+        .get('hello')
+        .exec((err, replies) => {
 
-client.quit();
+            if (err)
+                reject(err)
+
+            resolve(replies)
+        })
+    })
+
+    
+
+    const replies = await p;
+    console.log(replies);
+    console.log('promise finished');
+    return;
+}
+
+//inc();
+multiExec();
+
+//client.quit();
