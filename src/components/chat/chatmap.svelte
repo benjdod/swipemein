@@ -42,9 +42,17 @@
      * @param {Array[]} coords - array of lat lon coord sets
      */
     const calculateCoordsCenter = (coords) => {
+
+        if (coords.length > 0 ) {
+            if (typeof coords[0] == 'number') {
+                return coords;
+            }
+        }
+
         const n = coords.length;
         let latsum = 0, lonsum = 0;
         coords.forEach(c => {
+            console.log(c);
             latsum += c[0];
             lonsum += c[1];
         })
@@ -53,12 +61,13 @@
     }
 
     export let height;
-    // export let latitude;
-    // export let longitude;
-
     export let coords;
 
-    $: handleLatLng(calculateCoordsCenter(coords))
+    $: {
+        const newCenter = calculateCoordsCenter(coords);
+        console.log('new center: ' , newCenter);
+        handleLatLng(newCenter);
+    }
     
 </script>
 

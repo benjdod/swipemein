@@ -29,6 +29,10 @@
 
     let ackOffer;
 
+    // FIXME: if you lose connection and a provider offers you a request, your request gets
+    // pended and you can't get it anymore since it's not active. Add in a checkRequestStatus
+    // or something similar on mount
+
 	const setupRequestSocket = () => {
         const setNoConnection = () => {err.noConnection = true; err.message = 'You\'re not connected! Refresh to reconnect'}
 
@@ -75,7 +79,7 @@
     let fields = {};
     let cookies = getCookies();
     if (cookies['smi-request'] && ! inChatState) {
-		const requestParamURL = '/api/data/request?score=' + parseInt(cookies['smi-request']);
+		const requestParamURL = '/api/data/request?score=' + cookies['smi-request'];
 		fetch(requestParamURL, {
 			method: 'GET',
 			headers: {

@@ -1,7 +1,7 @@
 const ws = require('ws');
 const messageHub = require('./messagehub.js');
-
-let requestSockets = {};
+const rs = require('./request-sockets');
+const { decryptScore } = require('../encryption');
 
 const chatServer = new ws.Server({ noServer: true });
 chatServer.on('connection', (socket, request) => {
@@ -23,17 +23,6 @@ chatServer.on('connection', (socket, request) => {
 const requestServer = new ws.Server({noServer: true});
 requestServer.on('connection', socket => {
 
-    /*
-    setTimeout(() => {
-
-        const acceptObject = {
-            type: 'accept',
-            id: '8-af+39Ha' // some session id...
-        }
-
-        socket.send(JSON.stringify(acceptObject));
-    }, 3000);
-    */
 });
 
 /**
@@ -57,16 +46,25 @@ exports.bindWSServers = (expressServer) => {
         } else if (request.url.match(/^\/ws\/request/)) {
             requestServer.handleUpgrade(request, socket, head, socket => {
 
-                const req_score = request.url.replace('/ws/request/', '');
+                const req_score = decryptScore(request.url.replace('/ws/request/', ''));
 
 				console.log('rt server adding request socket: ', req_score);
 
 				socket.on('close', () => {
 					console.log(`deleting request socket ${req_score}`);
-					delete requestSockets[req_score];
+                    rs.deleteSocket(req_score);
 				})
 
-                requestSockets[req_score] = socket;
+                const parsedScore = parseInt(req_score);
+
+                if (parsedScore == NaN) {
+                    console.error(`socket attempted to connect with an invalid request score of ${parsedScore}`);
+                    socket.on('open', () => {
+                        socket.close();
+                    })
+                }
+
+                rs.addSocket(parsedScore, socket)
                 requestServer.emit('connection', socket, request);
             });
         }
@@ -86,7 +84,7 @@ exports.notifyOfAcceptedRequest = async ( sessionId, score, name) => {
 
 	console.log('rt server looking for request socket: ', score);
     
-    const targetSocket = requestSockets[score];
+    const targetSocket = rs.getSocket(score)
     if (! targetSocket) {console.error('cannot notify requester of offer: can\'t find their socket...'); return false;}
 
     const acceptObject = {

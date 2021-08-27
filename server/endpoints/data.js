@@ -3,12 +3,23 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const redis = require('redis');
 const crypto = require('crypto');
-const log = require('ololog');
 
-const { notifyOfAcceptedRequest } = require('./rt-servers');
 const messageHub = require('./messagehub');
-const { addRequest, deleteRequest, getActiveRequests, pendRequestByScore, unpendRequest, getRequest, getProvider } = require('./requests-shell');
+const { 
+    notifyOfAcceptedRequest 
+} = require('./rt-servers');
+const { 
+    addRequest, 
+    deleteRequest, 
+    getActiveRequests, 
+    pendRequest, 
+    unpendRequest, 
+    getRequest, 
+    hasProvider, 
+    hasRequester 
+} = require('./requests-shell');
 const { createControlMessage } = require('../../src/util/chat-message-format');
+const { encryptScore, decryptScore } = require('../encryption');
 
 const client = redis.createClient(6379);
 const router = express.Router();
@@ -43,21 +54,31 @@ router.post('/request', async (req,res) => {
 	//let key, score;
     const [key, score] = newReq;
 
+    console.log('new request ppsted: ', newReq);
+
+    const encScore = encryptScore(score);
+    console.log('encrypted: ', encScore);
+
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', score, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+    res.cookie('smi-request', encScore, {maxAge: msLeft, secure: true, sameSite: 'strict'})
 		.cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
         .sendStatus(200);
 });
 
 router.get('/request', async (req, res) => {
 	try {
-		const request = await getRequest(parseInt(req.query.score));
+        console.log('get request query: ', req.query);
+        const decryptedScore = decryptScore(req.query.score);
+		const request = await getRequest(decryptedScore);
 
 		if (Object.keys(request).length == 0) {
-			res.status(404).send(`no request with score of ${score} exists.`);
+			res.status(404).send(`no request with score of ${decryptedScore} exists.`);
 		}
+
+        request.score = request.encScore;
+        delete request.encScore;
 
 		res.send(JSON.stringify(request));
 
@@ -69,7 +90,9 @@ router.get('/request', async (req, res) => {
 
 router.delete('/request', (req,res) => {
 
-    deleteRequest(req.body.key, req.body.score).then(() => {
+    const decryptedScore = decryptScore(req.body.score);
+
+    deleteRequest(req.body.key, decryptedScore).then(() => {
         res.clearCookie('smi-request').clearCookie('smi-request-key').sendStatus(200);
     }).catch(e => {
         console.error(e);
@@ -102,14 +125,16 @@ router.post('/pend-request', async (req,res) => {
 
     const sessionId = messageHub.createSession();
 
-    const provider = await getProvider(req.body.uid);
+    const isProvider = await hasProvider(req.body.uid);
 
-    if (provider == null) {
-        res.status(401).send(`Invalid credentials. Please provide a valid 'uid' field in the request body.`)
+    if (! isProvider) {
+        res.status(401).send(`Could not verify role. Please provide a valid 'uid' field in the request body.`)
     }
 
-    notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)
-    .then(() => pendRequestByScore(req.body.score))
+    const decryptedScore = decryptScore(req.body.score);
+
+    notifyOfAcceptedRequest(sessionId, decryptedScore, req.body.name)
+    .then(() => pendRequest(decryptedScore))
     .then(() => {
         res.cookie('smi-session-id', sessionId)
         .cookie('smi-request', req.body.score)
@@ -118,21 +143,23 @@ router.post('/pend-request', async (req,res) => {
         console.error(e);
         res.sendStatus(500);
     })
-
-    /*
-    if (notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)) {
-        await pendRequestByScore(req.body.score);
-        res.cookie('smi-session-id', sessionId)
-            .cookie('smi-request', req.body.score)
-            .sendStatus(200);
-    }
-    else {
-        res.sendStatus(500);
-    } */
 })
 
 router.post('/unpend-request', async (req, res) => {
-    unpendRequest(req.body.score)
+
+    let authorized = false;
+
+    if (req.body.uid) {
+        authorized = hasProvider(req.body.uid);
+    } else if (req.body.key) {
+        authorized = hasRequester(req.body.key);
+    }
+
+    if (! authorized) {
+        res.status(401).send(`Could not verify role. Please provide a valid 'uid' or 'key' field in the request body depending on your role.`)
+    }
+
+    unpendRequest(decryptScore(req.body.score))
     .then(() => {
         messageHub.sendMessage(req.body.sessionId, createControlMessage(req.body.p, 'CANCEL'));
     })
@@ -150,11 +177,15 @@ router.post('/unpend-request', async (req, res) => {
 // generate list of recent requests for provider list view
 router.get('/requests', (req,res) => {
     // TODO: add params (skip, limit, sort) for infinite scrolling, filtering, etc
-    getActiveRequests(0,20).then(requests => {
 
-        //const real_requests = requests.map(r=>JSON.parse(r[0]));
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 20;
 
-        res.set('Content-Type', 'application/json').send(requests);
+    getActiveRequests(skip, limit).then(requests => {
+        res.set('Content-Type', 'application/json').send(requests.map(r => {
+            r.score = r.encScore;
+            return r;
+        }));
     }).catch(e => {
         console.error(e);
         res.status(500).send('could not fetch requests');

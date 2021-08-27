@@ -12,6 +12,8 @@ const deterministicStringify = require('json-stringify-deterministic');
 const activeRequestsKey = `requests:active`;
 const pendingRequestsPrefix = `requests:pending:`;
 
+const { encryptScore } = require('../encryption');
+
 const wipeSet = new Set();
 
 class RedisError extends Error {
@@ -126,7 +128,7 @@ exports.addRequest = async (request) => {
     const score = getTimeBasedScore();
 
     if (typeof request == 'object') {
-        payload = deterministicStringify({...request, score: score});
+        payload = deterministicStringify({...request, score: score, encScore: encryptScore(score)});
     } else {
         throw Error('Request argument is not an object');
     }
@@ -174,30 +176,16 @@ exports.getRequest = async (score) => {
 	}
 }
 
-/**
- * 
- * @param {string | Object} request 
- * @param {number} score 
- * @returns {void}
- *
-exports.pendRequest = async (request, score) => {
+exports.hasRequester = async (key) => {
+    const transaction = new Promise((resolve, reject) => {
+        client.hexists('requests:keys', key, (err, reply) => {
+            if (err) reject(new RedisError('could not determine the existence of the requester due to a transaction error'))
+            resolve(parseInt(reply) != 0);
+        })
+    })
 
-    if (typeof request == 'object') {
-        request = deterministicStringify(request);
-    }
-
-    if (score === undefined) {
-        const zscoreSync = promisify(client.zscore).bind(client);
-        score = await zscoreSync(activeRequestsKey, request);
-    }
-
-    const setSync = promisify(client.set).bind(client);
-    const zremrangebyscoreSync = promisify(client.zremrangebyscore).bind(client);
-    const nremoved=await zremrangebyscoreSync(activeRequestsKey, score, score);
-    console.log(`removed ${nremoved} members from active requests`);
-    await setSync(`requests:pending:${0-score}`, request);
-    return;
-} */
+    return await transaction;
+}
 
 exports.getProvider = async (uid) => {
     const getSync = promisify(client.get).bind(client);
@@ -205,20 +193,23 @@ exports.getProvider = async (uid) => {
     return providerString ? JSON.parse(providerString) : null;
 }
 
-exports.pendRequestByScore = async (score) => {
+exports.hasProvider = async (uid) => {
+    const transaction = new Promise((resolve, reject) => {
+        client.get(`prv:${uid}`, (err, provider) => {
+            if (err) reject(new RedisError('could not determine whether or not a provider exists due to a transaction error'))
+            resolve(provider != null);
+        })
+    })
+
+    return await transaction;
+}
+
+exports.pendRequest = async (score) => {
     const zrangebyscoreSync = promisify(client.zrangebyscore).bind(client);
 
     const transaction = new Promise((resolve, reject) => {
 
         const transactionError = new RedisError('could not pend request due to a Redis error')
-
-        let request;
-
-        try {
-            //request = await zrangebyscoreSync(activeRequestsKey, score, score);
-        } catch (e) {
-            throw redisError;
-        }
 
         client.zrangebyscore(activeRequestsKey, score, score, (err, request) => {
 

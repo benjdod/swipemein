@@ -16,10 +16,7 @@
     let chat_messages = []
     let participantId = '0';
     let errorMessage = '';
-    let coords = {
-		lat: 35.910534,
-		lng: -79.048764
-    };
+    let coords = [35.910534, -79.048764];
     let mycoords = {
 		latitude: 35.910534,
 		longitude: -79.048764
@@ -129,8 +126,8 @@
             } else if (message.type == ptc.TXT.str) {
                 chat_messages = [...chat_messages, message];
             } else if (message.type == ptc.GEO.str) {
-                coords = message.body;
-				coords.latitude = message.body.latitude;
+				coords[0] = message.body.latitude;
+                coords[1] = message.body.longitude;
             }
         }
 
@@ -206,7 +203,7 @@
 
 <div>
     <div style="overflow: hidden;">
-        <Chatmap height={300} coords={[coords.lat, coords.lng]}/>
+        <Chatmap height={300} coords={coords}/>
         <div>
             <a use:link href="/">Home</a>
             <button on:click={cancelPendingRequest}>Cancel</button>
