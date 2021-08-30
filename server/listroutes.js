@@ -8,7 +8,7 @@ exports.listRoutes = (router) => {
     let out = '';
 
     routes.forEach(route => {
-        out += `${route}\n`;
+        out += `${route}\r\n`;
     })
 
     return `<pre>${out}</pre>`;

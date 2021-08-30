@@ -140,7 +140,7 @@
             <label for="field-time">Time</label>
             <input type="time" id="field-time" on:change={showEvent} bind:value={fields.time}>
             <br>
-            <div>
+            <div id="field-message">
                 <textarea placeholder="A short message..." on:input={textboxCharCount} id="field-message" bind:value={fields.message}></textarea>
                 <p style="color: {textboxLength > message_maxlength ? 'red' : 'inherit'}">{textboxLength} / {message_maxlength}</p>
             </div>
@@ -149,7 +149,7 @@
         {#if formError.hasError}
             <p>{formError.message}</p>
         {/if}
-        <button on:click={submitForm}>Submit!</button>
+        <button on:click={submitForm} id="submit-request">Submit!</button>
         <br>
         <a use:link href="/">&LeftArrow; Back home</a>
     </div>

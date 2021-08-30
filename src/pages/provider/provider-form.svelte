@@ -90,7 +90,7 @@ const deleteRequest = () => {
 			<div class="card centered-card">
 				<form id="provider-form">
 					<h2>What's your name?</h2>
-					<input type="text" bind:value={fields.name}>
+					<input id="field-name" type="text" bind:value={fields.name}>
 					<br>
 				</form>
 
@@ -98,7 +98,7 @@ const deleteRequest = () => {
 					<p>{formError.message}</p>
 				{/if}
 
-				<button class="submitform" on:click={submitForm}>Submit</button>
+				<button class="submitform" on:click={submitForm} id="submit-provider">Submit</button>
 				<br>
 				<a use:link href="/">&LeftArrow; Back home</a>
 			</div>

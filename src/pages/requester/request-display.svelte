@@ -187,16 +187,16 @@
         </div>
         {/if}
 
-        <p class="message">"{fields.message}"</p>
+        <p class="message" id="request-message">"{fields.message}"</p>
 
         <div class="fullwidth">
-            <button class="delete fullwidth" on:click={() => {dialog.delete = true;}}>Delete</button>
+            <button id="delete-request" class="delete fullwidth" on:click={() => {dialog.delete = true;}}>Delete</button>
             <!--
                 <button class="halfwidth renew">Renew</button>
             -->
         </div>
         {#if dialog.delete && !err.noConnection}
-            <ConfirmDialog confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
+            <ConfirmDialog id="delete-request-dialog" confirm="Delete" deny="cancel" denyaction={() => dialog.delete=false} confirmaction={deleteRequest}>Are you sure you want to delete your request?</ConfirmDialog>
         {/if}
         {#if accepted}
             <ConfirmDialog confirm="Yes" deny="No" confirmaction={acceptOffer} denyaction={rejectOffer}>{offer.name} has offered you a request, do you accept?</ConfirmDialog>

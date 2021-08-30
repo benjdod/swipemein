@@ -7,7 +7,7 @@ const dataRoutes = require('./endpoints/data.js');
 
 router.use('/data', dataRoutes);
 
-router.get('/', (req,res) => {
+router.get('/', (_, res) => {
     res.send(listRoutes(router));
 })
 

@@ -5,7 +5,7 @@ const PORT = 3000;
 
 server.get('/', (req, res) => {
     console.log(req.headers['content-type']);
-    res.send(`<pre>hello, you've reached the index</pre>`);
+    res.send(`<pre>hello, you've reached the index for the server at ${PORT}</pre>`);
 })
 
 server.post('/', (req,res) => {

@@ -31,43 +31,8 @@ router.use(cookieParser());
 // --- Requester endpoints --------------------------
 //
 
-// POST and DELETE requests
-router.post('/request', async (req,res) => {
-    
-    // note: uuid generation like this is very safe
-    // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
-    /*const request_uid = crypto.randomBytes(16).toString('hex');
-    console.info(`creating request ${request_uid}`);
-
-    const request_data = {...req.body, uid: request_uid}
-    */
-
-    let newReq;
-
-    try {
-        newReq = await addRequest({...req.body});
-    } catch (e) {
-        console.error(e);
-        res.sendStatus(500);
-    }
-
-	//let key, score;
-    const [key, score] = newReq;
-
-    console.log('new request ppsted: ', newReq);
-
-    const encScore = encryptScore(score);
-    console.log('encrypted: ', encScore);
-
-    // add a new request cookie that expires at midnight 
-    const now = new Date(Date.now());
-    const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', encScore, {maxAge: msLeft, secure: true, sameSite: 'strict'})
-		.cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
-        .sendStatus(200);
-});
-
-router.get('/request', async (req, res) => {
+router.route('/request')
+.get(async (req, res) => {
 	try {
         console.log('get request query: ', req.query);
         const decryptedScore = decryptScore(req.query.score);
@@ -87,8 +52,7 @@ router.get('/request', async (req, res) => {
 		res.status(500).send(`could not get request.`);
 	}
 })
-
-router.delete('/request', (req,res) => {
+.delete((req,res) => {
 
     const decryptedScore = decryptScore(req.body.score);
 
@@ -99,7 +63,40 @@ router.delete('/request', (req,res) => {
         res.status(500).send('could not delete request due to a server error');
     })
 })
+.post(async (req,res) => {
+    
+    // note: uuid generation like this is very safe
+    // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
+    /*const request_uid = crypto.randomBytes(16).toString('hex');
+    console.info(`creating request ${request_uid}`);
 
+    const request_data = {...req.body, uid: request_uid}
+    */
+
+    let newReq;
+
+    try {
+        newReq = await addRequest({...req.body});
+    } catch (e) {
+        console.error(e);
+        res.sendStatus(500);
+    }
+
+    //let key, score;
+    const [key, score] = newReq;
+
+    console.log('new request ppsted: ', newReq);
+
+    const encScore = encryptScore(score);
+    console.log('encrypted: ', encScore);
+
+    // add a new request cookie that expires at midnight 
+    const now = new Date(Date.now());
+    const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
+    res.cookie('smi-request', encScore, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+        .cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+        .sendStatus(200);
+});
 
 
 //
@@ -107,7 +104,8 @@ router.delete('/request', (req,res) => {
 //
 
 // POST and DELETE providers
-router.post('/provider', (req,res) => {
+router.route('/provider')
+.post((req,res) => {
     let provider_uid = crypto.randomBytes(16).toString('hex');
     client.set(`prv:${provider_uid}`, JSON.stringify(req.body));
     const now = new Date(Date.now());
@@ -115,7 +113,7 @@ router.post('/provider', (req,res) => {
     res.cookie('smi-provider', JSON.stringify({...req.body, uid: provider_uid}), {maxAge: msLeft, secure: true})
         .sendStatus(200);
 })
-router.delete('/provider', (req,res) => {
+.delete((req,res) => {
     client.del(`prv:${req.body.uid}`);
     res.clearCookie('smi-provider').sendStatus(200);
 })
