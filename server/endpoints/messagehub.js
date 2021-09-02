@@ -358,7 +358,7 @@ exports.endSession = (sessionId, options) => {
 
     let slotNumber;
 
-    if ((slotNumber = validateSessionId(sessionId)) == -1) {
+    if ((slotNumber = validateSessionId(sessionId)) < 0) {
         console.error('invalid conversation ID');
         return;
     }
