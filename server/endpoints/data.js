@@ -3,6 +3,9 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const redis = require('redis');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRETKEY = 'a great big secret... (change this)';
 
 const messageHub = require('./messagehub');
 const { 
@@ -31,19 +34,43 @@ router.use(cookieParser());
 // --- Requester endpoints --------------------------
 //
 
+/**
+ * @param {string} req - request object
+ * @param {express.Response} res - response object that will be used in case of verification error
+ */
+const verifyJWT = (req, res) => {
+    try {
+        const payload = jwt.verify(req.cookies['smi-token']);
+        return payload;
+    } catch (e) {
+        res.status(401).send('invalid token');
+    }
+}
+
+router.use('/request', (req, res, next) => {
+
+    if (req.cookies['smi-token'] == undefined) {
+        res.status(401).send('missing token');
+        return;
+    }
+
+    try {
+        const payload = jwt.verify(req.cookies['smi-token']);
+        req.tokenPayload = payload;
+        next();
+    } catch (e) {
+        res.status(401).send('invalid token');
+    }
+})
+
 router.route('/request')
 .get(async (req, res) => {
 	try {
-        console.log('get request query: ', req.query);
-        const decryptedScore = decryptScore(req.query.score);
-		const request = await getRequest(decryptedScore);
+		const request = await getRequest(req.tokenPayload.score);
 
 		if (Object.keys(request).length == 0) {
-			res.status(404).send(`no request with score of ${decryptedScore} exists.`);
+			res.status(404).send(`no request with score of ${req.tokenPayload.score} exists.`);
 		}
-
-        request.score = request.encScore;
-        delete request.encScore;
 
 		res.send(JSON.stringify(request));
 
@@ -54,24 +81,17 @@ router.route('/request')
 })
 .delete((req,res) => {
 
-    const decryptedScore = decryptScore(req.body.score);
+    const payload = verifyJWT(req, res);
 
-    deleteRequest(req.body.key, decryptedScore).then(() => {
-        res.clearCookie('smi-request').clearCookie('smi-request-key').sendStatus(200);
+    deleteRequest(payload.key, payload.score).then(() => {
+        //res.clearCookie('smi-request').clearCookie('smi-request-key').sendStatus(200);
+        res.clearCookie('smi-token').sendStatus(200);
     }).catch(e => {
         console.error(e);
         res.status(500).send('could not delete request due to a server error');
     })
 })
 .post(async (req,res) => {
-    
-    // note: uuid generation like this is very safe
-    // see https://stackoverflow.com/questions/49267840/are-the-odds-of-a-cryptographically-secure-random-number-generator-generating-th
-    /*const request_uid = crypto.randomBytes(16).toString('hex');
-    console.info(`creating request ${request_uid}`);
-
-    const request_data = {...req.body, uid: request_uid}
-    */
 
     let newReq;
 
@@ -82,19 +102,26 @@ router.route('/request')
         res.sendStatus(500);
     }
 
-    //let key, score;
     const [key, score] = newReq;
 
-    console.log('new request ppsted: ', newReq);
+    console.log('new request posted: ', newReq);
 
-    const encScore = encryptScore(score);
-    console.log('encrypted: ', encScore);
+    //const encScore = encryptScore(score);
+    console.log('encrypted: ', score);
+
+    const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
+
+    const token = jwt.sign({
+        'score': score,
+        'key': key, 
+        'role': 'req'
+    }, JWT_SECRETKEY, { expiresIn: msLeft })
 
     // add a new request cookie that expires at midnight 
     const now = new Date(Date.now());
-    const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-request', encScore, {maxAge: msLeft, secure: true, sameSite: 'strict'})
-        .cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+    res //.cookie('smi-request', score, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+        //.cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
+        .cookie('smi-token', token, {maxAge: msLeft, secure: true, sameSite: 'strict'})
         .sendStatus(200);
 });
 
@@ -131,8 +158,8 @@ router.post('/pend-request', async (req,res) => {
 
     const decryptedScore = decryptScore(req.body.score);
 
-    notifyOfAcceptedRequest(sessionId, decryptedScore, req.body.name)
-    .then(() => pendRequest(decryptedScore))
+    notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)
+    .then(() => pendRequest(req.body.score))
     .then(() => {
         res.cookie('smi-session-id', sessionId)
         .cookie('smi-request', req.body.score)
@@ -157,7 +184,7 @@ router.post('/unpend-request', async (req, res) => {
         res.status(401).send(`Could not verify role. Please provide a valid 'uid' or 'key' field in the request body depending on your role.`)
     }
 
-    unpendRequest(decryptScore(req.body.score))
+    unpendRequest(req.body.score)
     .then(() => {
         messageHub.sendMessage(req.body.sessionId, createControlMessage(req.body.p, 'CANCEL'));
     })
