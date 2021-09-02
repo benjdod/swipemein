@@ -5,7 +5,7 @@ const redis = require('redis');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRETKEY = 'a great big secret... (change this)';
+const JWT_SECRETKEY = 'a great big secret... (change this) fe9aefhhh3488aefEAFAEF';
 
 const messageHub = require('./messagehub');
 const { 
@@ -22,7 +22,7 @@ const {
     hasRequester 
 } = require('./requests-shell');
 const { createControlMessage } = require('../../src/util/chat-message-format');
-const { encryptScore, decryptScore } = require('../encryption');
+// const { encryptScore, decryptScore } = require('../encryption');
 
 const client = redis.createClient(6379);
 const router = express.Router();
@@ -38,38 +38,40 @@ router.use(cookieParser());
  * @param {string} req - request object
  * @param {express.Response} res - response object that will be used in case of verification error
  */
-const verifyJWT = (req, res) => {
-    try {
-        const payload = jwt.verify(req.cookies['smi-token']);
-        return payload;
-    } catch (e) {
-        res.status(401).send('invalid token');
-    }
-}
-
-router.use('/request', (req, res, next) => {
-
+const verifyToken = (req, res, next) => {
     if (req.cookies['smi-token'] == undefined) {
         res.status(401).send('missing token');
         return;
     }
 
     try {
-        const payload = jwt.verify(req.cookies['smi-token']);
-        req.tokenPayload = payload;
-        next();
+        const payload = jwt.verify(req.cookies['smi-token'], JWT_SECRETKEY);
+		req.token = payload;
+		next();
     } catch (e) {
+		console.error(e);
         res.status(401).send('invalid token');
     }
-})
+}
+
+const verifyRequester = (req,res,next) => {
+	if (req.token.role != 'req') res.status(401).send('invalid token');
+	else next();
+}
+
+const verifyProvider = (req,res,next) => {
+	if (req.token.role != 'prv') res.status(401).send('invalid token');
+	else next();
+}
+
 
 router.route('/request')
-.get(async (req, res) => {
+.get(verifyToken, async (req, res) => {
 	try {
-		const request = await getRequest(req.tokenPayload.score);
+		const request = await getRequest(req.token.score);
 
 		if (Object.keys(request).length == 0) {
-			res.status(404).send(`no request with score of ${req.tokenPayload.score} exists.`);
+			res.status(404).send(`no request with score of ${req.token.score} exists.`);
 		}
 
 		res.send(JSON.stringify(request));
@@ -79,11 +81,9 @@ router.route('/request')
 		res.status(500).send(`could not get request.`);
 	}
 })
-.delete((req,res) => {
+.delete(verifyToken, verifyRequester, (req,res) => {
 
-    const payload = verifyJWT(req, res);
-
-    deleteRequest(payload.key, payload.score).then(() => {
+    deleteRequest(req.token.key, req.token.score).then(() => {
         //res.clearCookie('smi-request').clearCookie('smi-request-key').sendStatus(200);
         res.clearCookie('smi-token').sendStatus(200);
     }).catch(e => {
@@ -109,6 +109,7 @@ router.route('/request')
     //const encScore = encryptScore(score);
     console.log('encrypted: ', score);
 
+    const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
 
     const token = jwt.sign({
@@ -118,7 +119,6 @@ router.route('/request')
     }, JWT_SECRETKEY, { expiresIn: msLeft })
 
     // add a new request cookie that expires at midnight 
-    const now = new Date(Date.now());
     res //.cookie('smi-request', score, {maxAge: msLeft, secure: true, sameSite: 'strict'})
         //.cookie('smi-request-key', key, {maxAge: msLeft, secure: true, sameSite: 'strict'})
         .cookie('smi-token', token, {maxAge: msLeft, secure: true, sameSite: 'strict'})
@@ -137,28 +137,32 @@ router.route('/provider')
     client.set(`prv:${provider_uid}`, JSON.stringify(req.body));
     const now = new Date(Date.now());
     const msLeft = (86400 - (now.getHours() * 3600) - (now.getMinutes() * 60) - (now.getSeconds())) * 1000;
-    res.cookie('smi-provider', JSON.stringify({...req.body, uid: provider_uid}), {maxAge: msLeft, secure: true})
+    const token = jwt.sign({
+		...req.body,
+		uid: provider_uid,
+        role: 'prv'
+    }, JWT_SECRETKEY, { expiresIn: msLeft })
+    res.cookie('smi-token', token, {maxAge: msLeft, secure: true})
         .sendStatus(200);
 })
-.delete((req,res) => {
-    client.del(`prv:${req.body.uid}`);
-    res.clearCookie('smi-provider').sendStatus(200);
+.delete(verifyToken, verifyRequester, (req,res) => {
+    client.del(`prv:${req.token.uid}`);
+    res.clearCookie('smi-token').sendStatus(200);
 })
 
 // inform requester that provider has accepted request, OK provider to proceed to chat as well.
-router.post('/pend-request', async (req,res) => {
+router.post('/pend-request', verifyToken, verifyProvider, async (req,res) => {
 
-    const sessionId = messageHub.createSession();
-
-    const isProvider = await hasProvider(req.body.uid);
-
+	console.log('pend request endpoint, checking provider');
+    const isProvider = await hasProvider(req.token.uid);
     if (! isProvider) {
-        res.status(401).send(`Could not verify role. Please provide a valid 'uid' field in the request body.`)
+        res.status(401).send(`Could not verify role.`)
     }
 
-    const decryptedScore = decryptScore(req.body.score);
+    const sessionId = messageHub.createSession();
+	console.log(`notifying socket for request ${req.body.score}`);
 
-    notifyOfAcceptedRequest(sessionId, req.body.score, req.body.name)
+    notifyOfAcceptedRequest(sessionId, req.body.score, req.token.name)
     .then(() => pendRequest(req.body.score))
     .then(() => {
         res.cookie('smi-session-id', sessionId)
@@ -170,28 +174,27 @@ router.post('/pend-request', async (req,res) => {
     })
 })
 
-router.post('/unpend-request', async (req, res) => {
+router.post('/unpend-request', verifyToken, async (req, res) => {
 
     let authorized = false;
 
-    if (req.body.uid) {
+    if (req.token.uid) {
         authorized = hasProvider(req.body.uid);
-    } else if (req.body.key) {
+    } else if (req.token.key) {
         authorized = hasRequester(req.body.key);
     }
 
     if (! authorized) {
-        res.status(401).send(`Could not verify role. Please provide a valid 'uid' or 'key' field in the request body depending on your role.`)
+        res.status(401).send(`Could not verify role.`);
     }
 
     unpendRequest(req.body.score)
     .then(() => {
         messageHub.sendMessage(req.body.sessionId, createControlMessage(req.body.p, 'CANCEL'));
+		messageHub.endSession(req.body.sessionId, {closeSockets: true});
     })
     .then(() => {
-        res.clearCookie('smi-participant-id')
-			.clearCookie('smi-session-id')
-			.sendStatus(200);
+        res.clearCookie('smi-request').clearCookie('smi-session-id').sendStatus(200);
     })
     .catch(e => {
         console.error(e);
@@ -200,7 +203,7 @@ router.post('/unpend-request', async (req, res) => {
 })
 
 // generate list of recent requests for provider list view
-router.get('/requests', (req,res) => {
+router.get('/requests', verifyToken, (req,res) => {
     // TODO: add params (skip, limit, sort) for infinite scrolling, filtering, etc
 
     const skip = req.query.skip || 0;
@@ -208,7 +211,6 @@ router.get('/requests', (req,res) => {
 
     getActiveRequests(skip, limit).then(requests => {
         res.set('Content-Type', 'application/json').send(requests.map(r => {
-            r.score = r.encScore;
             return r;
         }));
     }).catch(e => {

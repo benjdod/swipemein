@@ -14,7 +14,7 @@
 	import { getCookies } from "../../util/doc-cookies"
 
 	onMount(() => {
-		if (! (getCookies()['smi-provider'])) {
+		if (! (getCookies()['smi-token'])) {
 			navigate('/new-provider', {replace: true});
 		}
 

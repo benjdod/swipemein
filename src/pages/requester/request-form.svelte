@@ -24,7 +24,7 @@
     onMount(() => {
         // if there is a previous request stored on the user's machine,
         // just navigate to the display page
-        navigateOnCookie('smi-request', '/active-request');
+        navigateOnCookie('smi-token', '/active-request');
         actionOnCookie('smi-provider', () => {
             fromProvider = true;
         })

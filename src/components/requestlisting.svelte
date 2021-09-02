@@ -12,8 +12,6 @@ import { dayMinutesToString } from "../util/listtime";
 
     classyear = classyear % 100;    // chops the last two decimal digits from the classyear (e.g. 2024 -> 24)
 
-    const providerInfo = JSON.parse(decodeURIComponent(getCookies()['smi-provider']))
-
     const acceptRequest = () => {
         console.log(`attempting to offer to request ${score}`);
         fetch('/api/data/pend-request', {
@@ -23,9 +21,7 @@ import { dayMinutesToString } from "../util/listtime";
             },
             body: JSON.stringify({
                 score: score,
-                name: providerInfo.name,
-                uid: providerInfo.uid,
-            })
+            }) 
         }).then(r => {
             //console.log("request offer succesfful");
             navigate('/chat', {replace: true});

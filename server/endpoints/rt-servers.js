@@ -46,7 +46,11 @@ exports.bindWSServers = (expressServer) => {
         } else if (request.url.match(/^\/ws\/request/)) {
             requestServer.handleUpgrade(request, socket, head, socket => {
 
-                const req_score = decryptScore(request.url.replace('/ws/request/', ''));
+				// FIXME: prevent a user from opening multiple request 
+				// connections (maybe in multiple tabs)
+
+                // const req_score = decryptScore(request.url.replace('/ws/request/', ''));
+                const req_score = request.url.replace('/ws/request/', '');
 
 				console.log('rt server adding request socket: ', req_score);
 

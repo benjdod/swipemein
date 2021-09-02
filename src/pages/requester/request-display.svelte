@@ -78,8 +78,9 @@
 
     let fields = {};
     let cookies = getCookies();
-    if (cookies['smi-request'] && ! inChatState) {
-		const requestParamURL = '/api/data/request?score=' + cookies['smi-request'];
+    if (cookies['smi-token'] && ! inChatState) {
+		// const requestParamURL = '/api/data/request?token=' + cookies['smi-token'];
+		const requestParamURL = '/api/data/request';
 		fetch(requestParamURL, {
 			method: 'GET',
 			headers: {

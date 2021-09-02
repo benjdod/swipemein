@@ -1,7 +1,8 @@
 const { ClientFunction, Selector, Role } = require('testcafe');
+const { BASE_URL } = require('./common');
 
 fixture `req-1`
-    .page('http://localhost:8080/new-request');
+    .page(BASE_URL + '/new-request');
 
 test.meta('role', 'requester')
 ('create and delete request', async t => {
@@ -24,7 +25,7 @@ test.meta('role', 'requester')
         .expect(getCookies()).notContains('smi-request-key');
 });
 
-const requester = Role(`http://localhost:8080/new-request`, async t => {
+const requester = Role(`${BASE_URL}/new-request`, async t => {
     const now = new Date(Date.now());
     const init_time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     await t
@@ -35,7 +36,7 @@ const requester = Role(`http://localhost:8080/new-request`, async t => {
         .click('#submit-request')
 })
 
-const provider = Role(`http://localhost:8080/new-provider`, async t=> {
+const provider = Role(`${BASE_URL}/new-provider`, async t=> {
     await t
         .typeText('#field-name', 'Blemmy')
         .click('#submit-provider')
@@ -46,9 +47,11 @@ test
 ('simple accept and cancel', async t => {
 
     const getLocation = ClientFunction(() => document.location.href);
+    const getCookies = ClientFunction(() => document.cookie);
 
     await t
         .useRole(requester)
+		.expect(getCookies()).contains('smi-token')
         .navigateTo('http://localhost:8080/active-request')
         .expect(getLocation()).contains('active-request')
         .expect(Selector('#request-message').textContent).eql(`Hello, I'm Gink.`);

@@ -16,7 +16,7 @@ onMount(() => {
     if (cookies['smi-provider']) {
         navigate('/requests', {replace: 'true'});
     }*/
-    navigateOnCookie('smi-provider', '/requests');
+    navigateOnCookie('smi-token', '/requests');
     actionOnCookie('smi-request', () => hasRequest = true);
 })
 
