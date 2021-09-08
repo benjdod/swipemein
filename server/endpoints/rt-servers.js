@@ -2,22 +2,23 @@ const ws = require('ws');
 const messageHub = require('./messagehub.js');
 const rs = require('./request-sockets');
 const { decryptScore } = require('../encryption');
+const { verifyChatToken, decodeChatToken } = require('../chat-auth');
+const cookie = require('cookie');
 
 const chatServer = new ws.Server({ noServer: true });
 chatServer.on('connection', (socket, request) => {
 
-    console.log("chat server request url: ", request.url);
-
-    const sessionFull = request.url.replace('/ws/chat/', '');
-    if (! messageHub.addParticipant(socket, sessionFull)) {
-        console.log(`could not add participant to session ${sessionFull}`)
+	const session = request.payload.s;
+    if (! messageHub.addParticipant(socket, session)) {
+        console.log(`could not add participant to session ${session}`)
         socket.close();
     }
-
-    // add event listener to get session ID
-    // once it's obtained, remove event listener and
-    // do addParticipant(socket, sessionID)
 });
+
+chatServer.on('error', (socket,request) => {
+	console.error('chatServer error')
+	socket.close();
+})
 
 // handles connections created by the active request view on a requester's machine
 const requestServer = new ws.Server({noServer: true});
@@ -35,13 +36,22 @@ exports.bindWSServers = (expressServer) => {
         if (request.url.match(/^\/ws\/chat/)) {
             chatServer.handleUpgrade(request, socket, head, socket => {
 
-                if (request.headers['cookie'] !== undefined) {
-                    console.log(request.headers.cookie);
-                } else {
-                    console.log('no cookies');
-                }
+				// verify chat token and then grant connection
+                if (request.headers.cookie !== undefined) {
+					const cookies = cookie.parse(request.headers.cookie);
+					if (cookies['smi-chat-token'] !== undefined) {
+						const chatToken = cookies['smi-chat-token'];
+						const payload = verifyChatToken(chatToken);
+						if (payload != '') {
+							request.payload = payload;
+							chatServer.emit('connection', socket, request);
+							return;
+						} 
+					}
+                } 
 
-                chatServer.emit('connection', socket, request);
+				console.log('invalid credentials to connect to chat server (missing token)');
+				chatServer.emit('error', socket, request);
             });
         } else if (request.url.match(/^\/ws\/request/)) {
             requestServer.handleUpgrade(request, socket, head, socket => {
@@ -91,9 +101,11 @@ exports.notifyOfAcceptedRequest = async ( sessionId, score, name) => {
     const targetSocket = rs.getSocket(score)
     if (! targetSocket) {console.error('cannot notify requester of offer: can\'t find their socket...'); return false;}
 
+	const token = signChatToken(sessionId, 'new participant');
+
     const acceptObject = {
         type: 'accept',
-        id: sessionId,
+        token: sessionId,
         score: score,
         name: name,
     }
@@ -113,15 +125,6 @@ exports.notifyOfAcceptedRequest = async ( sessionId, score, name) => {
             reject(false);
         } 
     })
-
-    /*
-    try {
-        targetSocket.send(JSON.stringify(acceptObject));
-        return true;
-    } catch (e) {
-        console.error(e);
-        return false;
-    } */
 
     return promise;
 }

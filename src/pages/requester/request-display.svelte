@@ -49,12 +49,12 @@
                     /* we know data is in the form of:
                         {
                             type: "accept",
-                            id: <session id string>
+   							token: <chat token>
                             score: <request score>
                         }
                     */ 
 
-                    offer.id = data.id;
+                    offer.token = data.token;
                     offer.name = data.name;
                     accepted = true;    // shows accept offer dialog
                     document.cookie = `smi-request=${data.score}`;
@@ -154,13 +154,13 @@
 
     const acceptOffer = () => {
 
-        if (offer.id == '') {
+        if (offer.token == '') {
             console.error("no offer has been extended yet");
             return;
         }
 
         ackOffer();
-        document.cookie = `smi-session-id=${offer.id}`;
+        document.cookie = `smi-chat-token=${offer.token}`;
         navigate('/chat', {replace: true});
     }
 
