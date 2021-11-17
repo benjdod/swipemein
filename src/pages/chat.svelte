@@ -117,7 +117,7 @@
 					document.cookie = "smi-session-id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 					document.cookie = "smi-participant-id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
-                    const to = hasCookie('smi-request') ? '/active-request' : '/requests'
+                    const to = hasCookie('smi-request') ? '/my-request' : '/requests'
 
                     setTimeout(() => {
                         navigate(to, {replace: true});
@@ -183,7 +183,7 @@
 
             clearInterval(geoInterval);
             closeWebSocket();
-            const to = hasCookie('smi-request-key') ? '/active-request' : '/requests'
+            const to = hasCookie('smi-request-key') ? '/my-request' : '/requests'
             navigate(to, {
                 replace: true
             })

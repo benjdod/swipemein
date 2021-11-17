@@ -8,7 +8,7 @@
 import { link, navigate } from "svelte-routing"
 import { onMount } from "svelte"
 import { actionOnCookie, getCookies, navigateOnCookie } from "../../util/doc-cookies"
-import ModalPopup from "../../components/modalpopup.svelte"
+import ModalPopup from "../../components/ui/popup/modal/dialog.svelte"
 
 onMount(() => {
     /*

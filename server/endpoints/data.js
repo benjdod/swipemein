@@ -5,12 +5,12 @@ const redis = require('redis');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRETKEY = 'a great big secret... (change this) fe9aefhhh3488aefEAFAEF';
+const JWT_SECRETKEY = process.env['JWT_SECRET_KEY'] || 'a great big secret...';
 
 const messageHub = require('./messagehub');
 const { 
     notifyOfAcceptedRequest 
-} = require('./rt-servers');
+} = require('./rt/chat');
 const { 
     addRequest, 
     deleteRequest, 

@@ -9,8 +9,8 @@
     import { dayMinutesToString, getDayMilliseconds } from '../../util/listtime'
     import { onMount } from 'svelte'
     import { navigate } from 'svelte-routing';
-    import ConfirmDialog from "../../components/confirmpopdown.svelte"
-    import ModalPopup from "../../components/modalpopup.svelte"
+    import ConfirmDialog from "../../components/ui/popup/modeless/dialog.svelte";
+    import ModalPopup from "../../components/ui/popup/modal/dialog.svelte"
 
     let isActive = false;
     let accepted = false;

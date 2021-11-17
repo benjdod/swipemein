@@ -1,7 +1,4 @@
 <script>
-
-    import RoundedButton from "./ui/roundedbutton.svelte";
-
     export let denyaction = () => {};
     export let confirmaction = () => {};
     export let deny = "cancel";

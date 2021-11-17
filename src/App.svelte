@@ -24,7 +24,7 @@
 	<Router url="{url}">
 		<Route path="/requests"><ProviderReqList/></Route>
 		<Route path="/new-request"><RequesterForm/></Route>
-		<Route path="/active-request"><RequestDisplay/></Route>
+		<Route path="/my-request"><RequestDisplay/></Route>
 		<Route path="/new-provider"><ProviderForm/></Route>
 		{#if role == 'provider'}
 			<Route path="/chat"><ProviderChat/></Route>

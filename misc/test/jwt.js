@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const SECRET_KEY = 'SECRET';
+const SECRET_KEY = process.env['AUTH_SECRET_KEY'] || 'SECRET';
 
 const token = jwt.sign({
     'smi-request': 'a93408aef',

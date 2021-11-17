@@ -1,8 +1,8 @@
 <script>
 import { navigate } from "svelte-routing";
-import { getCookies } from "../util/doc-cookies";
+import { getCookies } from "../../util/doc-cookies";
 
-import { dayMinutesToString } from "../util/listtime";
+import { dayMinutesToString } from "../../util/listtime";
 
     export let time;                // time offset from 00:00 in minutes (e.g. 123 -> 2:03am)
     export let name;

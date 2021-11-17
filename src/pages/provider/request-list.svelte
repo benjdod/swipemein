@@ -4,7 +4,7 @@
 -->
 
 <script>
-    import Requestlisting from "../../components/requestlisting.svelte";
+    import Requestlisting from "../../components/request/listing.svelte";
     import "../../util/listtime"
 
 	import { onMount } from 'svelte'

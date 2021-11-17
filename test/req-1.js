@@ -52,7 +52,7 @@ test
     await t
         .useRole(requester)
 		.expect(getCookies()).contains('smi-token')
-        .navigateTo('http://localhost:8080/active-request')
-        .expect(getLocation()).contains('active-request')
+        .navigateTo('http://localhost:8080/my-request')
+        .expect(getLocation()).contains('my-request')
         .expect(Selector('#request-message').textContent).eql(`Hello, I'm Gink.`);
 })

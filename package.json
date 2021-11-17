@@ -22,7 +22,8 @@
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
-    "dev": "webpack serve --content-base public"
+    "dev": "node server/server.dev.js",
+    "start": "node server/server.js"
   },
   "dependencies": {
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.11",

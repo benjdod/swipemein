@@ -10,24 +10,22 @@
 
 </script>
 
-<main>
-    <div class="modal-outer">
-        <div class="modal-box {position}">
-            <slot/>
-            {#if confirmaction != undefined || denyaction != undefined}
-            <br>
-            <div class="choices">
-                {#if confirmaction != undefined}
-                <button class="halfwidth" on:click={denyaction}>{deny}</button>
-                {/if}
-                {#if denyaction != undefined}
-                <button class="halfwidth" on:click={confirmaction}>{confirm}</button>
-                {/if}
-            </div>
+<div class="modal-outer">
+    <div class="modal-box {position}">
+        <slot/>
+        {#if confirmaction != undefined || denyaction != undefined}
+        <br>
+        <div class="choices">
+            {#if confirmaction != undefined}
+            <button class="halfwidth" on:click={denyaction}>{deny}</button>
+            {/if}
+            {#if denyaction != undefined}
+            <button class="halfwidth" on:click={confirmaction}>{confirm}</button>
             {/if}
         </div>
+        {/if}
     </div>
-</main>
+</div>
 
 <style>
 

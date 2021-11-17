@@ -5,7 +5,7 @@
 
 <script>
 
-    import ModalPopup from "../../components/modalpopup.svelte"
+    import ModalPopup from "../../components/ui/popup/modal/dialog.svelte"
 
     import { onMount } from 'svelte'
     import { navigateOnCookie, actionOnCookie, getCookies } from '../../util/doc-cookies'
@@ -24,7 +24,7 @@
     onMount(() => {
         // if there is a previous request stored on the user's machine,
         // just navigate to the display page
-        navigateOnCookie('smi-token', '/active-request');
+        navigateOnCookie('smi-token', '/my-request');
         actionOnCookie('smi-provider', () => {
             fromProvider = true;
         })
@@ -87,7 +87,7 @@
             body: JSON.stringify(fields)
         }).then(r => {
             console.log(r.status);
-            navigate('/active-request');
+            navigate('/my-request');
         }).catch(error => {
             console.error('submit request err: ', error);
             formError.hasError = true;
